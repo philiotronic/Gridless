@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Stipsels">
+<meta name="apple-mobile-web-app-title" content="GRIDLESS">
 <link rel="manifest" href="./stipsels.manifest.json">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%23141414' rx='28'/%3E%3Crect x='18' y='82' width='156' height='14' fill='%232a4a5e' rx='4'/%3E%3Crect x='18' y='100' width='156' height='14' fill='%234a2a4e' rx='4'/%3E%3Crect x='36' y='56' width='11' height='40' fill='%234a9' rx='3'/%3E%3Crect x='56' y='68' width='11' height='26' fill='%234a9' rx='3'/%3E%3Crect x='76' y='50' width='11' height='46' fill='%234a9' rx='3'/%3E%3Crect x='96' y='62' width='11' height='34' fill='%234a9' rx='3'/%3E%3Crect x='116' y='58' width='11' height='42' fill='%234a9' rx='3'/%3E%3Crect x='136' y='70' width='11' height='22' fill='%234a9' rx='3'/%3E%3C/svg%3E">
-<title>Gridless Audio Workstation</title>
+<title>GRIDLESS</title>
 <style>
 /* ── Reset & base ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
@@ -161,7 +161,7 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
 <div id="app">
 
   <header id="hd">
-    <span id="appName">Gridless Audio Workstation</span>
+    <span id="appName" style="letter-spacing:-.5px">GRIDLESS</span>
     <input type="text" id="titleInput" placeholder="untitled">
     <div style="flex:1"></div>
     <button class="btn" id="snapBtn" title="snap to grid [S]">snap</button>
@@ -177,8 +177,21 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
     <div id="tl">
       <div id="tlWrap">
         <canvas id="ruler" height="22"></canvas>
-        <canvas id="tape" height="180"></canvas>
+        <canvas id="tape" height="160"></canvas>
+
       </div>
+      <!-- Bounce strip — sits below the scrollable tape, always visible -->
+      <div id="bounceSep" style="height:24px;background:#0e0e0e;border-top:1px solid #1a4a3a;border-bottom:1px solid #1a2a1a;display:flex;align-items:center;gap:6px;padding:0 8px;flex-shrink:0">
+        <span style="color:#3a6a4a;font-size:9px;text-transform:uppercase;letter-spacing:.1em;flex-shrink:0">bounce</span>
+        <button class="btn" id="bounceBtn" style="min-height:18px;padding:0 8px;font-size:10px;border-radius:4px;background:#1a3a2a;border-color:#2a5a3a;color:#4a8">◉ render</button>
+        <button class="btn" id="playRawBtn" style="min-height:18px;padding:0 7px;font-size:10px;border-radius:4px">▶ raw</button>
+        <button class="btn" id="playBounceBtn" style="min-height:18px;padding:0 7px;font-size:10px;border-radius:4px">▶ bounce</button>
+        <span id="bounceStatus" style="color:#2a5a3a;font-size:9px;white-space:nowrap">not rendered</span>
+        <div style="flex:1"></div>
+        <button class="btn" id="bounceSettBtn" style="min-height:18px;padding:0 8px;font-size:10px;border-radius:4px">⚙ chain</button>
+        <button class="btn" id="dlBounceBtn" style="min-height:18px;padding:0 8px;font-size:10px;border-radius:4px;background:#1a3a2a;border-color:#2a5a3a;color:#4a8">↓ bounce</button>
+      </div>
+      <canvas id="bounceCanvas" height="56" style="display:block;width:100%;flex-shrink:0"></canvas>
     </div>
 
     <aside id="sb">
@@ -208,6 +221,16 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
     <div class="isep"></div>
     <div class="igrp"><label>⊣</label><input type="number" id="iTS" min="0" step=".001" value="0"><label>s</label></div>
     <div class="igrp"><label>⊢</label><input type="number" id="iTE" min="0" step=".001" value="0"><label>s</label></div>
+    <div class="isep"></div>
+    <div class="igrp">
+      <label title="tape speed — changes pitch and duration">rate</label>
+      <input type="range" id="iRate" min="0.25" max="4" step="0.01" value="1" style="width:70px">
+      <span class="ival" id="iRateV">1.00×</span>
+    </div>
+    <div class="igrp">
+      <label title="collapse stereo to mono (use pan to position)">mono</label>
+      <button class="btn" id="iMono" style="min-width:36px;font-size:11px">off</button>
+    </div>
     <div class="isep"></div>
     <button class="btn" id="splitBtn" title="split at playhead [X]">✂</button>
     <button class="btn" id="toBackBtn"  title="send to back [Shift+[]">⬇⬇</button>
@@ -245,7 +268,7 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
 <!-- Help overlay — gestures + keyboard shortcuts -->
 <div id="overlay">
   <div id="obox">
-    <h2>Gridless Audio Workstation<button id="closeHelp">×</button></h2>
+    <h2>Stipsels<button id="closeHelp">×</button></h2>
     <h3>Gestures / mouse</h3>
     <table class="gtbl">
       <tr><td>Tap / click empty tape</td><td>Move playhead · deselect</td></tr>
@@ -315,6 +338,99 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
   </div>
 </div>
 
+<!-- Bounce chain settings overlay -->
+<div id="bounceOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:18px 20px;max-width:480px;width:100%;max-height:88dvh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #252525">
+      <span style="color:#bbb;font-size:14px;font-weight:500">Bounce chain</span>
+      <button id="closeBounceSettings" style="background:transparent;border:none;color:#555;font-size:20px;cursor:pointer">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:11px">
+
+      <!-- Output mode -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Output</span>
+        <button class="btn bcMode on" data-mode="stereo" style="font-size:11px;padding:2px 10px;min-height:26px">L/R stereo</button>
+        <button class="btn bcMode" data-mode="mono" style="font-size:11px;padding:2px 10px;min-height:26px">Mono</button>
+      </div>
+
+      <!-- HP filter -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">High-pass</span>
+        <input type="range" id="bcHp" min="10" max="400" step="1" value="30" style="width:120px">
+        <span class="bcVal" id="bcHpVal">30 Hz</span>
+      </div>
+
+      <!-- LP filter -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Low-pass</span>
+        <button class="btn" id="bcLpToggle" style="font-size:11px;padding:2px 8px;min-height:26px">off</button>
+        <input type="range" id="bcLp" min="1000" max="20000" step="100" value="18000" style="width:100px">
+        <span class="bcVal" id="bcLpVal">18k Hz</span>
+      </div>
+
+      <div style="border-top:1px solid #222;padding-top:8px;color:#444;font-size:10px;text-transform:uppercase;letter-spacing:.08em">Compressor</div>
+
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Threshold</span>
+        <input type="range" id="bcThresh" min="-60" max="0" step="1" value="-18" style="width:120px">
+        <span class="bcVal" id="bcThreshVal">−18 dB</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Ratio</span>
+        <input type="range" id="bcRatio" min="1" max="20" step=".5" value="4" style="width:120px">
+        <span class="bcVal" id="bcRatioVal">4:1</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Attack</span>
+        <input type="range" id="bcAtk" min="1" max="200" step="1" value="10" style="width:120px">
+        <span class="bcVal" id="bcAtkVal">10 ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Release</span>
+        <input type="range" id="bcRel" min="10" max="1000" step="10" value="150" style="width:120px">
+        <span class="bcVal" id="bcRelVal">150 ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Knee</span>
+        <input type="range" id="bcKnee" min="0" max="40" step="1" value="8" style="width:120px">
+        <span class="bcVal" id="bcKneeVal">8 dB</span>
+      </div>
+
+      <div style="border-top:1px solid #222;padding-top:8px;color:#444;font-size:10px;text-transform:uppercase;letter-spacing:.08em">Colour</div>
+
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Saturation</span>
+        <input type="range" id="bcSat" min="0" max="24" step=".5" value="0" style="width:120px">
+        <span class="bcVal" id="bcSatVal">off</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Stereo width</span>
+        <input type="range" id="bcWidth" min="0" max="2" step=".05" value="1" style="width:120px">
+        <span class="bcVal" id="bcWidthVal">1.0 (natural)</span>
+      </div>
+
+      <div style="border-top:1px solid #222;padding-top:8px;color:#444;font-size:10px;text-transform:uppercase;letter-spacing:.08em">Output</div>
+
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Output gain</span>
+        <input type="range" id="bcOutGain" min="-18" max="6" step=".5" value="0" style="width:120px">
+        <span class="bcVal" id="bcOutGainVal">0.0 dB</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Limiter ceiling</span>
+        <input type="range" id="bcLim" min="-12" max="0" step=".1" value="-0.1" style="width:120px">
+        <span class="bcVal" id="bcLimVal">−0.1 dBFS</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:110px;flex-shrink:0">Normalize</span>
+        <button class="btn" id="bcNormToggle" style="font-size:11px;padding:2px 8px;min-height:26px">off</button>
+        <span style="color:#444;font-size:10px">bring peak to −0.1 dBFS</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════
 // Environment
@@ -342,6 +458,19 @@ const s={
   preRoll:false,monitorInput:false,
   normalize:false,bit24:false,snap:false,
   undoStack:[],redoStack:[],
+  bounceBuffer:null, bounceMode:false, bounceSrc:null, bounceRaf:null,
+  bc:{
+    outputMode:'stereo',    // 'stereo'|'mono'
+    hpFreq:30,
+    lpEnabled:false, lpFreq:18000,
+    compOn:true,
+    compThreshold:-18, compRatio:4, compAttack:0.010, compRelease:0.150, compKnee:8,
+    satDrive:0,             // 0 = off, positive = drive dB
+    stereoWidth:1,          // 0=mono, 1=natural, 2=wide
+    outputGain:0,           // dB trim pre-limiter
+    limCeiling:-0.1,        // dBFS
+    normalize:false,
+  },
 };
 
 const tlWrap=document.getElementById('tlWrap');
@@ -354,7 +483,7 @@ const IDB_STORE='projects';
 
 async function openIDB(){
   return new Promise((res,rej)=>{
-    const req=indexedDB.open('stipsels',1);
+    const req=indexedDB.open('gridless',1);
     req.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE,{keyPath:'id'});
     req.onsuccess=e=>{idb=e.target.result;res(idb);};
     req.onerror=()=>rej(req.error);
@@ -388,7 +517,7 @@ function serializeForIDB(id){
     pps:s.pps,head:s.head,inPoint:s.inPoint,outPoint:s.outPoint,
     nextId:s.nextId,nextLibId:s.nextLibId,colorIdx:s.colorIdx,
     lib:s.lib.map(l=>({id:l.id,name:l.name,rawData:l.rawData,duration:l.duration,channels:l.channels,sampleRate:l.sampleRate,color:l.color,isRec:l.isRec||false})),
-    clips:s.clips.map(c=>({id:c.id,libId:c.libId,st:c.st,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0}))};
+    clips:s.clips.map(c=>({id:c.id,libId:c.libId,st:c.st,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0,rate:c.rate??1,mono:c.mono??false})),bc:s.bc};
 }
 
 async function loadFromIDB(data){
@@ -464,7 +593,7 @@ const mCv=document.getElementById('meter'), mCx=mCv.getContext('2d');
 const li    =(id)=>s.lib.find(l=>l.id===id);
 const clipBuf=(c)=>li(c.libId)?.buf??null;
 const clipCol=(c)=>li(c.libId)?.color??'#333';
-function effDur(c){const b=clipBuf(c);return b?Math.max(0,b.duration-(c.trimStart||0)-(c.trimEnd||0)):0;}
+function effDur(c){const b=clipBuf(c);if(!b)return 0;const r=c.rate??1;return Math.max(0,(b.duration-(c.trimStart||0)-(c.trimEnd||0))/Math.max(0.01,r));}
 function totalDur(){return s.clips.length?Math.max(Math.max(...s.clips.map(c=>c.st+effDur(c)))+6,30):30;}
 function tlW(){return Math.ceil(totalDur()*s.pps)+80;}
 const dBtoLin=db=>db<=-60?0:Math.pow(10,db/20);
@@ -474,7 +603,7 @@ const fmtPan =p=>Math.abs(p)<.01?'C':(p<0?'L':'R')+Math.round(Math.abs(p)*100);
 function fmt(t){const m=Math.floor(t/60),s=(t%60).toFixed(3).padStart(6,'0');return m+':'+s;}
 function snapT(t){return s.snap?Math.round(t*10)/10:t;}
 function exportName(ext){
-  const d=new Date(),raw=document.getElementById('titleInput').value.trim()||'stipsels';
+  const d=new Date(),raw=document.getElementById('titleInput').value.trim()||'gridless';
   const t=raw.replace(/[^a-z0-9_-]/gi,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
   return t+'-'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
     +'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+String(d.getSeconds()).padStart(2,'0')+'.'+ext;
@@ -615,6 +744,8 @@ function renderLib(){
     inf.appendChild(nm);inf.appendChild(dur);row.appendChild(inf);
     const add=document.createElement('button');add.className='libAdd';add.textContent='+';add.title='place at playhead';
     add.addEventListener('click',e=>{e.stopPropagation();addClip(item.id,s.head);});row.appendChild(add);
+    const dwn=document.createElement('button');dwn.className='libAdd';dwn.textContent='↓';dwn.title='download as WAV';dwn.style.cssText='background:#1a2a3a;color:#4a8a;border-color:#2a4a5a';
+    dwn.addEventListener('click',e=>{e.stopPropagation();dl(new Blob([encodeWAV16(item.buf)],{type:'audio/wav'}),item.name.replace(/\.[^.]+$/,'')+'.wav');});row.appendChild(dwn);
     const rm=document.createElement('button');rm.className='libRm';rm.textContent='×';
     rm.addEventListener('click',e=>{e.stopPropagation();removeLibItem(item.id);});row.appendChild(rm);
     row.addEventListener('click',()=>startPreview(item));
@@ -663,11 +794,12 @@ function makeChain(ctx,clip,dest,headTime){
   const buf=clipBuf(clip);if(!buf)return null;
   const ed=effDur(clip),elapsed=Math.max(0,headTime-clip.st);if(elapsed>=ed)return null;
   const src=ctx.createBufferSource();src.buffer=buf;
-  // Explicit stereo gain node
-  const gn=ctx.createGain();gn.channelCount=2;gn.channelCountMode='explicit';
-  // StereoPanner — always create, fall back to ChannelMerger trick if not available
-  let pn=null;
-  try{pn=ctx.createStereoPanner();}catch(e){}
+  src.playbackRate.value=Math.max(0.01,clip.rate??1);
+  // Force mono if requested
+  const gn=ctx.createGain();
+  if(clip.mono&&buf.numberOfChannels>1){gn.channelCount=1;gn.channelCountMode='explicit';gn.channelInterpretation='speakers';}
+  else{gn.channelCount=2;gn.channelCountMode='explicit';}
+  let pn=null;try{pn=ctx.createStereoPanner();}catch(e){}
   const g=clip.gain??1,fi=clip.fadeIn||0,fo=clip.fadeOut||0;
   let gNow=g;if(fi>0&&elapsed<fi)gNow=g*(elapsed/fi);
   gn.gain.setValueAtTime(gNow,ctx.currentTime);
@@ -796,6 +928,8 @@ function updateInsp(){
   document.getElementById('ipan').value=Math.round((clip.pan||0)*100);document.getElementById('ipanV').textContent=fmtPan(clip.pan||0);
   document.getElementById('iFI').value=(clip.fadeIn||0).toFixed(2);document.getElementById('iFO').value=(clip.fadeOut||0).toFixed(2);
   document.getElementById('iTS').value=(clip.trimStart||0).toFixed(3);document.getElementById('iTE').value=(clip.trimEnd||0).toFixed(3);
+  document.getElementById('iRate').value=(clip.rate??1).toFixed(2);document.getElementById('iRateV').textContent=(clip.rate??1).toFixed(2)+'×';
+  document.getElementById('iMono').textContent=(clip.mono?'on':'off');document.getElementById('iMono').classList.toggle('on',clip.mono??false);
 }
 document.getElementById('igain').addEventListener('input',e=>{const c=s.clips.find(x=>x.id===s.selId);if(!c)return;c.gain=dBtoLin(+e.target.value);document.getElementById('igainV').textContent=fmtdB(+e.target.value);render();});
 document.getElementById('ipan').addEventListener('input',e=>{const c=s.clips.find(x=>x.id===s.selId);if(!c)return;c.pan=e.target.value/100;document.getElementById('ipanV').textContent=fmtPan(e.target.value/100);render();});
@@ -810,6 +944,230 @@ document.getElementById('iTE').addEventListener('change',e=>{
   const c=s.clips.find(x=>x.id===s.selId);const buf=clipBuf(c);if(!c||!buf)return;
   c.trimEnd=Math.max(0,Math.min(+e.target.value,buf.duration-(c.trimStart||0)-.01));render();
 });
+document.getElementById('iRate').addEventListener('input',e=>{
+  const c=s.clips.find(x=>x.id===s.selId);if(!c)return;
+  c.rate=Math.max(0.01,+e.target.value);document.getElementById('iRateV').textContent=c.rate.toFixed(2)+'×';render();
+});
+document.getElementById('iMono').addEventListener('click',()=>{
+  const c=s.clips.find(x=>x.id===s.selId);if(!c)return;snapshot();
+  c.mono=!c.mono;document.getElementById('iMono').textContent=c.mono?'on':'off';document.getElementById('iMono').classList.toggle('on',c.mono);render();
+});
+
+// ════════════════════════════════════════════════
+// Bounce system
+// ════════════════════════════════════════════════
+const bounceCanvas=document.getElementById('bounceCanvas');
+const bc2=bounceCanvas.getContext('2d');
+
+function drawBounceWave(){
+  // Fixed-width overview — fills the tl panel, no horizontal scroll needed
+  const tl=document.getElementById('tl');
+  const W=Math.max(100,tl.clientWidth||400),H=56,dpr=window.devicePixelRatio||1;
+  if(bounceCanvas.width!==Math.ceil(W*dpr)||bounceCanvas.height!==Math.ceil(H*dpr)){
+    bounceCanvas.width=Math.ceil(W*dpr);bounceCanvas.height=Math.ceil(H*dpr);
+  }
+  bc2.setTransform(dpr,0,0,dpr,0,0);
+  bc2.fillStyle='#0a0a0a';bc2.fillRect(0,0,W,H);
+  if(!s.bounceBuffer){
+    bc2.strokeStyle='#1a4a3a';bc2.setLineDash([4,6]);bc2.lineWidth=1;
+    bc2.strokeRect(1,1,W-2,H-2);bc2.setLineDash([]);
+    bc2.fillStyle='#2a6a4a';bc2.font='10px monospace';bc2.textAlign='center';
+    bc2.fillText('click ◉ render to compute bounce',W/2,H/2+4);
+    bc2.textAlign='left';return;
+  }
+  const buf=s.bounceBuffer;
+  const isMono=buf.numberOfChannels===1;
+  const inT=s.inPoint??0,outT=s.outPoint??Math.max(...s.clips.map(c=>c.st+effDur(c)),10);
+  const rows=isMono?[[0,0,W,H]]:[[0,0,W,H/2],[0,H/2,W,H/2]];
+  rows.forEach(([cx,cy,cw,ch],idx)=>{
+    const data=buf.getChannelData(Math.min(idx,buf.numberOfChannels-1));
+    const cols=Math.max(1,Math.floor(cw));
+    const spc=Math.max(1,Math.floor(data.length/cols));
+    const mid=cy+ch/2,half=ch/2-2;
+    bc2.strokeStyle='rgba(80,200,130,0.55)';bc2.lineWidth=1;bc2.beginPath();
+    for(let j=0;j<cols;j++){
+      const a=j*spc,b=Math.min(a+spc,data.length);let mn=0,mx=0;
+      for(let k=a;k<b;k++){if(data[k]<mn)mn=data[k];if(data[k]>mx)mx=data[k];}
+      bc2.moveTo(cx+j+.5,mid-mx*half);bc2.lineTo(cx+j+.5,mid-mn*half);
+    }
+    bc2.stroke();
+  });
+  if(!isMono){
+    bc2.strokeStyle='rgba(80,200,130,0.12)';bc2.lineWidth=1;
+    bc2.beginPath();bc2.moveTo(0,H/2);bc2.lineTo(W,H/2);bc2.stroke();
+  }
+  // Playhead — mapped relative to bounce extent
+  const dur=outT-inT;
+  if(dur>0){
+    const progress=Math.max(0,Math.min(1,(s.head-inT)/dur));
+    const px=progress*W;
+    bc2.strokeStyle='#c44';bc2.lineWidth=1.5;
+    bc2.beginPath();bc2.moveTo(px,0);bc2.lineTo(px,H);bc2.stroke();
+  }
+}
+
+// Saturation curve (tanh soft-clip)
+function applySat(buf,drive){
+  if(drive<=0)return;
+  const g=Math.pow(10,drive/20);
+  for(let ch=0;ch<buf.numberOfChannels;ch++){
+    const d=buf.getChannelData(ch);
+    for(let i=0;i<d.length;i++)d[i]=Math.tanh(d[i]*g)/Math.tanh(g);
+  }
+}
+
+// M/S stereo width
+function applyWidth(buf,w){
+  if(Math.abs(w-1)<0.01||buf.numberOfChannels<2)return;
+  const L=buf.getChannelData(0),R=buf.getChannelData(1);
+  for(let i=0;i<buf.length;i++){
+    const m=(L[i]+R[i])*.5,si=(L[i]-R[i])*.5*w;
+    L[i]=m+si;R[i]=m-si;
+  }
+}
+
+// Peak normalize to target dBFS
+function applyNorm(buf,ceilDb=-0.1){
+  let peak=0;
+  for(let ch=0;ch<buf.numberOfChannels;ch++){const d=buf.getChannelData(ch);for(let i=0;i<d.length;i++)peak=Math.max(peak,Math.abs(d[i]));}
+  if(peak<0.001)return;
+  const sc=Math.pow(10,ceilDb/20)/peak;
+  for(let ch=0;ch<buf.numberOfChannels;ch++){const d=buf.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]*=sc;}
+}
+
+async function doBounce(){
+  if(!s.clips.length)return;
+  document.getElementById('bounceStatus').textContent='rendering…';
+  document.getElementById('bounceStatus').style.color='#8a6';
+  const ctx=getCtx(),sr=ctx.sampleRate,bc=s.bc;
+  const inT=s.inPoint??0,outT=s.outPoint??Math.max(...s.clips.map(c=>c.st+effDur(c)));
+  const dur=Math.max(0.01,outT-inT);
+  const nCh=bc.outputMode==='mono'?1:2;
+
+  // Stage 1 — mix raw clips
+  const mixCtx=new OfflineAudioContext(2,Math.ceil(dur*sr),sr);
+  const mixMaster=mixCtx.createGain();mixMaster.gain.value=1;mixMaster.connect(mixCtx.destination);
+  for(const c of s.clips){
+    const buf=clipBuf(c);if(!buf)continue;
+    const ed=effDur(c);if(c.st+ed<=inT||c.st>=outT)continue;
+    const cs=Math.max(0,c.st-inT),ba=Math.max(0,inT-c.st),bs=(c.trimStart||0)+ba,pd=Math.min(ed-ba,dur-cs);if(pd<=0)continue;
+    const src=mixCtx.createBufferSource();src.buffer=buf;src.playbackRate.value=Math.max(0.01,c.rate??1);
+    const gn=mixCtx.createGain();gn.gain.value=c.gain??1;
+    if(c.mono&&buf.numberOfChannels>1){gn.channelCount=1;gn.channelCountMode='explicit';}
+    const fi=c.fadeIn||0,fo=c.fadeOut||0;
+    if(fi>0&&ba<fi){gn.gain.setValueAtTime((c.gain??1)*(ba/fi),cs);gn.gain.linearRampToValueAtTime(c.gain??1,cs+(fi-ba));}
+    if(fo>0){gn.gain.setValueAtTime(c.gain??1,Math.max(cs,cs+pd-fo));gn.gain.linearRampToValueAtTime(0,cs+pd);}
+    let pn=null;try{pn=mixCtx.createStereoPanner();}catch(e){}
+    if(pn)pn.pan.value=c.pan||0;
+    src.connect(gn);if(pn){gn.connect(pn);pn.connect(mixMaster);}else gn.connect(mixMaster);
+    src.start(cs,bs,pd);
+  }
+  const mixed=await mixCtx.startRendering();
+
+  // Stage 2 — bounce chain through OfflineAudioContext
+  const procCtx=new OfflineAudioContext(2,mixed.length,sr);
+  const src2=procCtx.createBufferSource();src2.buffer=mixed;
+  let node=src2;
+
+  const hp=procCtx.createBiquadFilter();hp.type='highpass';hp.frequency.value=bc.hpFreq;hp.Q.value=0.7;
+  node.connect(hp);node=hp;
+
+  if(bc.lpEnabled){
+    const lp=procCtx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=bc.lpFreq;lp.Q.value=0.7;
+    node.connect(lp);node=lp;
+  }
+  if(bc.compOn){
+    const comp=procCtx.createDynamicsCompressor();
+    comp.threshold.value=bc.compThreshold;comp.ratio.value=bc.compRatio;
+    comp.attack.value=bc.compAttack;comp.release.value=bc.compRelease;comp.knee.value=bc.compKnee;
+    node.connect(comp);node=comp;
+  }
+  const outGn=procCtx.createGain();outGn.gain.value=Math.pow(10,bc.outputGain/20);
+  node.connect(outGn);node=outGn;
+  // Limiter (brickwall)
+  const lim=procCtx.createDynamicsCompressor();
+  lim.threshold.value=bc.limCeiling;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.001;lim.release.value=0.05;
+  node.connect(lim);node=lim;
+  node.connect(procCtx.destination);
+  src2.start(0);
+  let rendered=await procCtx.startRendering();
+
+  // Stage 3 — buffer-level processing (sat, width, normalize, mono sum)
+  applySat(rendered,bc.satDrive);
+  applyWidth(rendered,bc.stereoWidth);
+  if(bc.normalize)applyNorm(rendered);
+
+  // Convert to mono if requested
+  if(nCh===1){
+    const mono=ctx.createBuffer(1,rendered.length,sr);
+    const d=mono.getChannelData(0);
+    const L=rendered.getChannelData(0),R=rendered.numberOfChannels>1?rendered.getChannelData(1):L;
+    for(let i=0;i<d.length;i++)d[i]=(L[i]+R[i])*.5;
+    rendered=mono;
+  }
+
+  s.bounceBuffer=rendered;
+  const dur2=rendered.length/sr;
+  document.getElementById('bounceStatus').textContent=dur2.toFixed(2)+'s '+(nCh===1?'mono':'stereo')+' rendered';
+  document.getElementById('bounceStatus').style.color='#4a8';
+  drawBounceWave();
+}
+
+function stopBouncePlay(){
+  if(s.bounceSrc){try{s.bounceSrc.stop();}catch(e){}s.bounceSrc=null;}
+  if(s.bounceRaf){cancelAnimationFrame(s.bounceRaf);s.bounceRaf=null;}
+  const btn=document.getElementById('playBounceBtn');
+  if(btn)btn.classList.remove('on');
+  drawBounceWave();
+}
+
+async function playBounce(){
+  if(!s.bounceBuffer)return;
+  stopBouncePlay();
+  if(s.playing)stop();
+  const ctx=getCtx();
+  // Always resume — Safari/iOS requires explicit resume on every play
+  try{await ctx.resume();}catch(e){}
+  const buf=s.bounceBuffer;
+  const inT=s.inPoint??0;
+  // offset into bounce buffer from current playhead
+  const headOffset=Math.max(0,s.head-inT);
+  const startOffset=Math.min(headOffset,Math.max(0,buf.duration-0.01));
+  const master=ctx.createGain();master.gain.value=1;master.connect(ctx.destination);
+  const bsrc=ctx.createBufferSource();bsrc.buffer=buf;bsrc.connect(master);
+  s.bounceSrc=bsrc;
+  document.getElementById('playBounceBtn').classList.add('on');
+  const t0=ctx.currentTime,h0=s.head;
+  const tick=()=>{
+    if(!s.bounceSrc)return;
+    s.head=h0+(ctx.currentTime-t0);
+    document.getElementById('posDisplay').textContent=fmt(s.head);
+    render();drawBounceWave();
+    s.bounceRaf=requestAnimationFrame(tick);
+  };
+  bsrc.onended=()=>{if(s.bounceSrc===bsrc)stopBouncePlay();};
+  bsrc.start(ctx.currentTime,startOffset);
+  s.bounceRaf=requestAnimationFrame(tick);
+}
+
+// Bounce settings panel
+function syncBcUI(){
+  const bc=s.bc;
+  document.getElementById('bcHp').value=bc.hpFreq;document.getElementById('bcHpVal').textContent=bc.hpFreq+' Hz';
+  document.getElementById('bcLp').value=bc.lpFreq;document.getElementById('bcLpVal').textContent=bc.lpFreq>=20000?'20k Hz':(bc.lpFreq/1000).toFixed(1)+'k Hz';
+  document.getElementById('bcLpToggle').textContent=bc.lpEnabled?'on':'off';document.getElementById('bcLpToggle').classList.toggle('on',bc.lpEnabled);
+  document.getElementById('bcThresh').value=bc.compThreshold;document.getElementById('bcThreshVal').textContent=(bc.compThreshold<0?'−':'')+Math.abs(bc.compThreshold)+' dB';
+  document.getElementById('bcRatio').value=bc.compRatio;document.getElementById('bcRatioVal').textContent=bc.compRatio+':1';
+  document.getElementById('bcAtk').value=Math.round(bc.compAttack*1000);document.getElementById('bcAtkVal').textContent=Math.round(bc.compAttack*1000)+' ms';
+  document.getElementById('bcRel').value=Math.round(bc.compRelease*1000);document.getElementById('bcRelVal').textContent=Math.round(bc.compRelease*1000)+' ms';
+  document.getElementById('bcKnee').value=bc.compKnee;document.getElementById('bcKneeVal').textContent=bc.compKnee+' dB';
+  document.getElementById('bcSat').value=bc.satDrive;document.getElementById('bcSatVal').textContent=bc.satDrive<=0?'off':'+'+bc.satDrive.toFixed(1)+' dB';
+  document.getElementById('bcWidth').value=bc.stereoWidth;document.getElementById('bcWidthVal').textContent=bc.stereoWidth===0?'mono (0)':bc.stereoWidth===1?'1.0 (natural)':bc.stereoWidth.toFixed(2)+'× (wide)';
+  document.getElementById('bcOutGain').value=bc.outputGain;document.getElementById('bcOutGainVal').textContent=(bc.outputGain>=0?'+':'')+bc.outputGain.toFixed(1)+' dB';
+  document.getElementById('bcLim').value=bc.limCeiling;document.getElementById('bcLimVal').textContent=(bc.limCeiling<0?'−':'')+Math.abs(bc.limCeiling)+' dBFS';
+  document.getElementById('bcNormToggle').textContent=bc.normalize?'on':'off';document.getElementById('bcNormToggle').classList.toggle('on',bc.normalize);
+  document.querySelectorAll('.bcMode').forEach(b=>{b.classList.toggle('on',b.dataset.mode===bc.outputMode);});
+}
 
 // ════════════════════════════════════════════════
 // Edit operations
@@ -902,7 +1260,7 @@ function saveProject(){
   const proj={version:2,pps:s.pps,head:s.head,inPoint:s.inPoint,outPoint:s.outPoint,
     title:document.getElementById('titleInput').value,nextId:s.nextId,nextLibId:s.nextLibId,colorIdx:s.colorIdx,
     lib:s.lib.map(l=>({id:l.id,name:l.name,data:ab2b64(l.rawData),duration:l.duration,channels:l.channels,sampleRate:l.sampleRate,color:l.color,isRec:l.isRec||false})),
-    clips:s.clips.map(c=>({id:c.id,libId:c.libId,st:c.st,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0}))};
+    clips:s.clips.map(c=>({id:c.id,libId:c.libId,st:c.st,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0,rate:c.rate??1,mono:c.mono??false})),bc:s.bc};
   dl(new Blob([JSON.stringify(proj)],{type:'application/json'}),exportName('json'));
 }
 async function loadProject(file){
@@ -936,7 +1294,7 @@ async function addToLib(file){
 }
 function addClip(libId,st){
   const item=li(libId);if(!item)return;snapshot();
-  s.clips.push({id:s.nextId++,libId,st:Math.max(0,st),gain:1,pan:0,fadeIn:0,fadeOut:0,trimStart:0,trimEnd:0});render();
+  s.clips.push({id:s.nextId++,libId,st:Math.max(0,st),gain:1,pan:0,fadeIn:0,fadeOut:0,trimStart:0,trimEnd:0,rate:1,mono:false});render();
 }
 async function loadFiles(files,startTime=null){
   for(const f of files){
@@ -1100,6 +1458,43 @@ document.getElementById('helpBtn').addEventListener('click',()=>showHelp(true));
 document.getElementById('closeHelp').addEventListener('click',()=>showHelp(false));
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)showHelp(false);});
 
+// Bounce controls
+document.getElementById('bounceBtn').addEventListener('click',doBounce);
+document.getElementById('playRawBtn').addEventListener('click',()=>{stopBouncePlay();s.playing?stop():play();});
+document.getElementById('playBounceBtn').addEventListener('click',()=>{if(s.bounceSrc)stopBouncePlay();else playBounce();});
+document.getElementById('bounceSettBtn').addEventListener('click',()=>{syncBcUI();document.getElementById('bounceOverlay').style.display='flex';});
+document.getElementById('closeBounceSettings').addEventListener('click',()=>document.getElementById('bounceOverlay').style.display='none');
+document.getElementById('bounceOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.style.display='none';});
+document.getElementById('dlBounceBtn').addEventListener('click',()=>{
+  if(!s.bounceBuffer)return alert('Render bounce first');
+  const wav=s.bc.bit24||s.bit24?encodeWAV24(s.bounceBuffer):encodeWAV16(s.bounceBuffer);
+  dl(new Blob([wav],{type:'audio/wav'}),exportName('bounce.wav'));
+});
+
+// Bounce chain settings sliders
+const bcBind=(id,key,parse,fmt,scale=1)=>{
+  document.getElementById(id).addEventListener('input',e=>{
+    s.bc[key]=parse(e.target.value)*scale;
+    document.getElementById(id+'Val').textContent=fmt(s.bc[key]);
+    s.bounceBuffer=null;document.getElementById('bounceStatus').textContent='settings changed — re-render';document.getElementById('bounceStatus').style.color='#8a6';
+    drawBounceWave();
+  });
+};
+bcBind('bcHp','hpFreq',Number,v=>Math.round(v)+' Hz');
+bcBind('bcLp','lpFreq',Number,v=>v>=20000?'20k Hz':(v/1000).toFixed(1)+'k Hz');
+bcBind('bcThresh','compThreshold',Number,v=>(v<0?'−':'')+Math.abs(v)+' dB');
+bcBind('bcRatio','compRatio',Number,v=>v+':1');
+bcBind('bcAtk','compAttack',Number,v=>Math.round(v)+' ms',0.001);
+bcBind('bcRel','compRelease',Number,v=>Math.round(v)+' ms',0.001);
+bcBind('bcKnee','compKnee',Number,v=>v+' dB');
+bcBind('bcSat','satDrive',Number,v=>v<=0?'off':'+'+v.toFixed(1)+' dB');
+bcBind('bcWidth','stereoWidth',Number,v=>v===0?'mono (0)':v===1?'1.0 (natural)':parseFloat(v).toFixed(2)+'× (wide)');
+bcBind('bcOutGain','outputGain',Number,v=>(v>=0?'+':'')+parseFloat(v).toFixed(1)+' dB');
+bcBind('bcLim','limCeiling',Number,v=>(v<0?'−':'')+Math.abs(v)+' dBFS');
+document.getElementById('bcLpToggle').addEventListener('click',()=>{s.bc.lpEnabled=!s.bc.lpEnabled;syncBcUI();s.bounceBuffer=null;drawBounceWave();});
+document.getElementById('bcNormToggle').addEventListener('click',()=>{s.bc.normalize=!s.bc.normalize;syncBcUI();s.bounceBuffer=null;drawBounceWave();});
+document.querySelectorAll('.bcMode').forEach(b=>b.addEventListener('click',()=>{s.bc.outputMode=b.dataset.mode;syncBcUI();s.bounceBuffer=null;drawBounceWave();}));
+
 // Projects / storage
 document.getElementById('saveBtn').addEventListener('click',showProjOverlay);
 document.getElementById('closeProjOverlay').addEventListener('click',hideProjOverlay);
@@ -1118,7 +1513,7 @@ document.getElementById('saveSlotBtn').addEventListener('click',async()=>{
 // Keep old load/save JSON buttons but update labels
 document.getElementById('loadBtn').addEventListener('click',()=>document.getElementById('jsonInput').click());
 
-window.addEventListener('resize',render);
+window.addEventListener('resize',()=>{render();drawBounceWave();});
 
 // ── Init ──────────────────────────────────────
 (async()=>{
@@ -1128,7 +1523,7 @@ window.addEventListener('resize',render);
   if('serviceWorker' in navigator && location.protocol !== 'file:'){
     try{await navigator.serviceWorker.register('./stipsels-sw.js');}catch(e){}
   }
-  render();
+  render();drawBounceWave();
 })();
 </script>
 </body>
