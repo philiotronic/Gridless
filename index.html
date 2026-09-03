@@ -462,7 +462,7 @@ const RULER_H=22, TAPE_H=180, TRIM_ZONE=HAS_FINE_POINTER?10:22;
 
 const s={
   lib:[],clips:[],nextId:1,nextLibId:1,colorIdx:0,
-  pps:80,head:0,playing:false,selId:null,
+  pps:80,head:0,playing:false,selIds:[],clipboard:[],multiSelect:false,drag:null,
   ctx:null,srcs:[],t0:0,h0:0,raf:null,
   preview:null,
   recording:false,recChannelBuffers:[],recChannelCount:0,
@@ -536,7 +536,7 @@ function serializeForIDB(id){
 }
 
 async function loadFromIDB(data){
-  stop();s.lib=[];s.clips=[];const ctx=getCtx();
+  stop();s.lib=[];s.clips=[];s.selIds=[];s.clipboard=[];const ctx=getCtx();
   for(const item of data.lib){
     try{
       const buf=await ctx.decodeAudioData(item.rawData.slice(0));
@@ -1328,7 +1328,7 @@ function saveProject(){
 }
 async function loadProject(file){
   try{
-    const proj=JSON.parse(await file.text());stop();s.lib=[];s.clips=[];
+    const proj=JSON.parse(await file.text());stop();s.lib=[];s.clips=[];s.selIds=[];s.clipboard=[];
     const ctx=getCtx();
     for(const item of proj.lib){
       const rawData=b642ab(item.data),buf=await ctx.decodeAudioData(rawData.slice(0));
