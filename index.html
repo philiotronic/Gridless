@@ -251,6 +251,11 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
     <button class="btn" id="rtzBtn" title="return to zero [Home]">|◀</button>
     <button class="btn" id="playBtn" title="play / stop [Space]" style="min-width:50px">▶</button>
     <button class="btn" id="stopBtn" title="stop">■</button>
+    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+      <span style="color:#444;font-size:10px">speed</span>
+      <input type="range" id="speedSlider" min="0.1" max="2" step="0.01" value="1" style="width:70px;accent-color:#5ab">
+      <span id="speedVal" style="color:#5ab;font-size:10px;min-width:32px;cursor:pointer" title="double-click to reset">1.00×</span>
+    </div>
     <button class="btn" id="recBtn" title="record [R]">●</button>
     <button class="btn" id="preBtn" title="2-second pre-roll before recording">pre</button>
     <button class="btn" id="monBtn" title="monitor mic input while recording">mon</button>
@@ -352,6 +357,43 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
   </div>
 </div>
 
+<!-- Explode / auto-slice overlay -->
+<div id="explodeOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:18px 20px;max-width:420px;width:100%">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #252525">
+      <span style="color:#bbb;font-size:13px;font-weight:500">⊹ explode on silence</span>
+      <button id="closeExplode" style="background:transparent;border:none;color:#555;font-size:20px;cursor:pointer">×</button>
+    </div>
+    <div id="explodeSource" style="color:#666;font-size:11px;margin-bottom:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:11px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:120px;flex-shrink:0">Silence threshold</span>
+        <input type="range" id="exThresh" min="-60" max="-12" step="1" value="-36" style="flex:1">
+        <span id="exThreshVal" style="color:#aa8;min-width:48px;text-align:right">−36 dB</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:120px;flex-shrink:0">Min gap (silence)</span>
+        <input type="range" id="exGap" min="50" max="2000" step="10" value="200" style="flex:1">
+        <span id="exGapVal" style="color:#aa8;min-width:48px;text-align:right">200 ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:120px;flex-shrink:0">Min segment</span>
+        <input type="range" id="exLen" min="20" max="2000" step="10" value="100" style="flex:1">
+        <span id="exLenVal" style="color:#aa8;min-width:48px;text-align:right">100 ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#555;width:120px;flex-shrink:0">Pre-roll</span>
+        <input type="range" id="exPre" min="0" max="200" step="5" value="15" style="flex:1">
+        <span id="exPreVal" style="color:#aa8;min-width:48px;text-align:right">15 ms</span>
+      </div>
+    </div>
+    <div id="exStatus" style="color:#554;font-size:10px;margin-top:12px;min-height:14px"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+      <button class="btn" id="exCancelBtn" style="font-size:11px">cancel</button>
+      <button class="btn" id="exRunBtn" style="font-size:11px;background:#2a2a1a;color:#aa8;border-color:#4a4a2a">⊹ explode</button>
+    </div>
+  </div>
+</div>
 <!-- Bounce chain settings overlay -->
 <div id="bounceOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;padding:16px">
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:18px 20px;max-width:480px;width:100%;max-height:88dvh;overflow-y:auto">
@@ -462,7 +504,7 @@ const RULER_H=22, TAPE_H=180, TRIM_ZONE=HAS_FINE_POINTER?10:22;
 
 const s={
   lib:[],clips:[],nextId:1,nextLibId:1,colorIdx:0,
-  pps:80,head:0,playing:false,selIds:[],clipboard:[],multiSelect:false,drag:null,
+  pps:80,head:0,playing:false,playbackSpeed:1,selIds:[],clipboard:[],multiSelect:false,drag:null,
   ctx:null,srcs:[],t0:0,h0:0,raf:null,
   preview:null,
   recording:false,recChannelBuffers:[],recChannelCount:0,
@@ -489,6 +531,119 @@ const s={
 };
 
 const tlWrap=document.getElementById('tlWrap');
+
+
+// ════════════════════════════════════════════════
+// Explode — auto-slice on silence
+// ════════════════════════════════════════════════
+let explodeTargetId = null;
+
+function openExplode(item){
+  explodeTargetId = item.id;
+  document.getElementById('explodeSource').textContent = item.name + ' · ' + item.duration.toFixed(2) + 's · ' + (item.channels===2?'stereo':'mono');
+  document.getElementById('exStatus').textContent = '';
+  document.getElementById('explodeOverlay').style.display = 'flex';
+}
+
+// live-update slider labels
+['exThresh','exGap','exLen','exPre'].forEach(id=>{
+  const el = document.getElementById(id);
+  const upd = () => {
+    const v = +el.value;
+    const lbl = document.getElementById(id+'Val');
+    if(id==='exThresh') lbl.textContent = (v<0?'−':'')+Math.abs(v)+' dB';
+    else lbl.textContent = v+' ms';
+  };
+  el.addEventListener('input', upd);
+});
+
+async function runExplode(){
+  const item = li(explodeTargetId);
+  if(!item) return;
+  const buf = item.buf;
+  const sr = buf.sampleRate;
+  const nCh = buf.numberOfChannels;
+  const threshDb = +document.getElementById('exThresh').value;
+  const thresh = Math.pow(10, threshDb/20);
+  const minGapMs = +document.getElementById('exGap').value;
+  const minLenMs = +document.getElementById('exLen').value;
+  const preMs = +document.getElementById('exPre').value;
+  const postMs = 50; // fixed 50ms post-roll
+
+  const winSamples = Math.floor(sr * 0.020); // 20ms RMS windows
+  const numWins = Math.ceil(buf.length / winSamples);
+  const minGapWins = Math.max(1, Math.ceil((minGapMs/1000*sr) / winSamples));
+  const minLenSamples = Math.floor(minLenMs/1000*sr);
+  const preRollSamples = Math.floor(preMs/1000*sr);
+  const postRollSamples = Math.floor(postMs/1000*sr);
+
+  // Compute windowed max-RMS across all channels
+  const rms = new Float32Array(numWins);
+  for(let w=0;w<numWins;w++){
+    const s0=w*winSamples, s1=Math.min(s0+winSamples,buf.length);
+    let mx=0;
+    for(let ch=0;ch<nCh;ch++){
+      const d=buf.getChannelData(ch);let sum=0;
+      for(let i=s0;i<s1;i++)sum+=d[i]*d[i];
+      mx=Math.max(mx,Math.sqrt(sum/(s1-s0)));
+    }
+    rms[w]=mx;
+  }
+
+  // State-machine segmentation
+  const segs=[];
+  let inSeg=false,segWinStart=0,silWins=0;
+  for(let w=0;w<=numWins;w++){
+    const silent=w>=numWins||rms[w]<thresh;
+    if(!inSeg){
+      if(!silent){inSeg=true;segWinStart=Math.max(0,w-Math.ceil(preRollSamples/winSamples));silWins=0;}
+    }else{
+      if(silent){
+        silWins++;
+        if(silWins>=minGapWins){
+          // commit segment — end at where silence started + post-roll
+          const silStartSample=(w-silWins)*winSamples;
+          const segStart=segWinStart*winSamples;
+          const segEnd=Math.min(buf.length,silStartSample+postRollSamples);
+          if(segEnd-segStart>=minLenSamples)segs.push([segStart,segEnd]);
+          inSeg=false;silWins=0;
+        }
+      }else{silWins=0;}
+    }
+  }
+  // Trailing open segment
+  if(inSeg){
+    const segStart=segWinStart*winSamples;
+    if(buf.length-segStart>=minLenSamples)segs.push([segStart,buf.length]);
+  }
+
+  if(!segs.length){
+    document.getElementById('exStatus').textContent='No segments found — try a lower threshold';
+    return;
+  }
+
+  const ctx=getCtx();
+  const baseName=item.name.replace(/\.[^.]+$/,'');
+  for(let i=0;i<segs.length;i++){
+    const[s0,s1]=segs[i];
+    const len=s1-s0;
+    const nb=ctx.createBuffer(nCh,len,sr);
+    for(let ch=0;ch<nCh;ch++)nb.getChannelData(ch).set(buf.getChannelData(ch).subarray(s0,s1));
+    const rawData=encodeWAV16(nb);
+    const color=COLS[s.colorIdx++%COLS.length];
+    s.lib.push({id:s.nextLibId++,name:`${baseName}_${String(i+1).padStart(3,'0')}`,
+      rawData,buf:nb,duration:nb.duration,channels:nCh,sampleRate:sr,color,isRec:false,thumbEl:null});
+  }
+  renderLib();scheduleAutosave();
+  document.getElementById('explodeOverlay').style.display='none';
+  document.getElementById('posDisplay').textContent=`⊹ ${segs.length} segments from "${item.name.slice(0,22)}"`;
+  setTimeout(()=>document.getElementById('posDisplay').textContent=fmt(s.head),2500);
+}
+
+document.getElementById('closeExplode').addEventListener('click',()=>document.getElementById('explodeOverlay').style.display='none');
+document.getElementById('explodeOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.style.display='none';});
+document.getElementById('exCancelBtn').addEventListener('click',()=>document.getElementById('explodeOverlay').style.display='none');
+document.getElementById('exRunBtn').addEventListener('click',runExplode);
 
 // ════════════════════════════════════════════════
 // IndexedDB storage
@@ -764,6 +919,8 @@ function renderLib(){
     add.addEventListener('click',e=>{e.stopPropagation();addClip(item.id,s.head);});row.appendChild(add);
     const dwn=document.createElement('button');dwn.className='libAdd';dwn.textContent='↓';dwn.title='download as WAV';dwn.style.cssText='background:#1a2a3a;color:#4a8a;border-color:#2a4a5a';
     dwn.addEventListener('click',e=>{e.stopPropagation();dl(new Blob([encodeWAV16(item.buf)],{type:'audio/wav'}),item.name.replace(/\.[^.]+$/,'')+'.wav');});row.appendChild(dwn);
+    const expl=document.createElement('button');expl.className='libAdd';expl.textContent='⊹';expl.title='explode — auto-slice on silence into individual sounds';expl.style.cssText='background:#2a2a1a;color:#aa8;border-color:#4a4a2a';
+    expl.addEventListener('click',e=>{e.stopPropagation();openExplode(item);});row.appendChild(expl);
     const rm=document.createElement('button');rm.className='libRm';rm.textContent='×';
     rm.addEventListener('click',e=>{e.stopPropagation();removeLibItem(item.id);});row.appendChild(rm);
     row.addEventListener('click',()=>startPreview(item));
@@ -811,23 +968,33 @@ function getCtx(){
 function makeChain(ctx,clip,dest,headTime){
   const buf=clipBuf(clip);if(!buf)return null;
   const ed=effDur(clip),elapsed=Math.max(0,headTime-clip.st);if(elapsed>=ed)return null;
-  const src=ctx.createBufferSource();src.buffer=buf;
-  const combinedRate=Math.max(0.01,(clip.rate??1)*Math.pow(2,(clip.pitch??0)/12));
-  src.playbackRate.value=combinedRate;
-  // Force mono if requested
+  // Master speed: tape advances faster/slower, pitch follows (true varispeed)
+  const spd=Math.max(0.01,s.playbackSpeed??1);
+  const bufRate=Math.max(0.01,(clip.rate??1)*Math.pow(2,(clip.pitch??0)/12));
+  const combinedRate=bufRate*spd;
+  const src=ctx.createBufferSource();src.buffer=buf;src.playbackRate.value=combinedRate;
   const gn=ctx.createGain();
   if(clip.mono&&buf.numberOfChannels>1){gn.channelCount=1;gn.channelCountMode='explicit';gn.channelInterpretation='speakers';}
   else{gn.channelCount=2;gn.channelCountMode='explicit';}
   let pn=null;try{pn=ctx.createStereoPanner();}catch(e){}
   const g=clip.gain??1,fi=clip.fadeIn||0,fo=clip.fadeOut||0;
+  // Schedule: tape-time delay divided by speed = real-time delay
+  const realDelay=Math.max(0,clip.st-headTime)/spd;
+  const cs=ctx.currentTime+realDelay;
+  const tapeRem=ed-elapsed;
+  const bufStart=(clip.trimStart||0)+elapsed*bufRate; // buffer position at headTime
+  const bufDur=tapeRem*bufRate;                        // buffer seconds to play
   let gNow=g;if(fi>0&&elapsed<fi)gNow=g*(elapsed/fi);
   gn.gain.setValueAtTime(gNow,ctx.currentTime);
-  const delay=Math.max(0,clip.st-headTime),cs=ctx.currentTime+delay,rem=ed-elapsed;
-  if(fi>0&&elapsed<fi)gn.gain.linearRampToValueAtTime(g,cs+(fi-elapsed));
-  if(fo>0){const fos=clip.st+ed-fo;if(headTime<fos){gn.gain.setValueAtTime(g,cs+(fos-Math.max(headTime,clip.st)));gn.gain.linearRampToValueAtTime(0,cs+rem);}else{gn.gain.setValueAtTime(g*(1-(headTime-fos)/fo),cs);gn.gain.linearRampToValueAtTime(0,cs+rem);}}
+  if(fi>0&&elapsed<fi)gn.gain.linearRampToValueAtTime(g,cs+(fi-elapsed)/spd);
+  if(fo>0){
+    const foTape=clip.st+ed-fo;
+    if(headTime<foTape){gn.gain.setValueAtTime(g,cs+(foTape-Math.max(headTime,clip.st))/spd);gn.gain.linearRampToValueAtTime(0,cs+tapeRem/spd);}
+    else{gn.gain.setValueAtTime(g*(1-(headTime-foTape)/fo),cs);gn.gain.linearRampToValueAtTime(0,cs+tapeRem/spd);}
+  }
   if(pn)pn.pan.value=clip.pan||0;
   src.connect(gn);if(pn){gn.connect(pn);pn.connect(dest);}else gn.connect(dest);
-  src.start(cs,(clip.trimStart||0)+elapsed,rem);return src;
+  src.start(cs,bufStart,bufDur);return src;
 }
 
 function play(){
@@ -838,7 +1005,8 @@ function play(){
   const master=ctx.createGain();master.gain.value=1;master.connect(ctx.destination);
   for(const c of s.clips){const src=makeChain(ctx,c,master,s.head);if(src)s.srcs.push(src);}
   const tick=()=>{
-    if(!s.playing)return;s.head=s.h0+getCtx().currentTime-s.t0;
+    if(!s.playing)return;
+    s.head=s.h0+(getCtx().currentTime-s.t0)*(s.playbackSpeed??1);
     document.getElementById('posDisplay').textContent=fmt(s.head);render();
     if(s.head>=totalDur()){stop();return;}s.raf=requestAnimationFrame(tick);
   };
@@ -1321,7 +1489,7 @@ function b642ab(b64){const bin=atob(b64),bytes=new Uint8Array(bin.length);for(le
 function saveProject(){
   if(!s.lib.length)return;
   const proj={version:2,pps:s.pps,head:s.head,inPoint:s.inPoint,outPoint:s.outPoint,
-    title:document.getElementById('titleInput').value,nextId:s.nextId,nextLibId:s.nextLibId,colorIdx:s.colorIdx,
+    title:document.getElementById('titleInput').value,playbackSpeed:s.playbackSpeed??1,nextId:s.nextId,nextLibId:s.nextLibId,colorIdx:s.colorIdx,
     lib:s.lib.map(l=>({id:l.id,name:l.name,data:ab2b64(l.rawData),duration:l.duration,channels:l.channels,sampleRate:l.sampleRate,color:l.color,isRec:l.isRec||false})),
     clips:s.clips.map(c=>({id:c.id,libId:c.libId,st:c.st,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0,rate:c.rate??1,pitch:c.pitch??0,mono:c.mono??false})),bc:s.bc};
   dl(new Blob([JSON.stringify(proj)],{type:'application/json'}),exportName('json'));
@@ -1536,6 +1704,19 @@ document.getElementById('addBtn').addEventListener('click',()=>document.getEleme
 document.getElementById('fileInput').addEventListener('change',async e=>{await loadFiles(e.target.files,null);e.target.value='';});
 document.getElementById('jsonInput').addEventListener('change',async e=>{if(e.target.files[0])await loadProject(e.target.files[0]);e.target.value='';});
 document.getElementById('helpBtn').addEventListener('click',()=>showHelp(true));
+
+// Master playback speed
+document.getElementById('speedSlider').addEventListener('input',e=>{
+  s.playbackSpeed=+e.target.value;
+  document.getElementById('speedVal').textContent=s.playbackSpeed.toFixed(2)+'×';
+  // If playing, restart with new speed
+  if(s.playing){const h=s.head;stop();s.head=h;play();}
+});
+document.getElementById('speedVal').addEventListener('dblclick',()=>{
+  s.playbackSpeed=1;document.getElementById('speedSlider').value=1;
+  document.getElementById('speedVal').textContent='1.00×';
+  if(s.playing){const h=s.head;stop();s.head=h;play();}
+});
 document.getElementById('closeHelp').addEventListener('click',()=>showHelp(false));
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)showHelp(false);});
 
