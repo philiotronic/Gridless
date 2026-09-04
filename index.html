@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="GRIDLESS">
 <!-- manifest injected by JS (CORS blocks file:// origins) -->
 <!-- apple-touch-icon set via JS below (iOS requires PNG) -->
 <title>GRIDLESS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23141414'/%3E%3Crect x='2' y='14' width='28' height='4' fill='%232a4a5e'/%3E%3Crect x='4' y='8' width='4' height='11' fill='%234a9'/%3E%3Crect x='10' y='11' width='4' height='7' fill='%234a9'/%3E%3Crect x='16' y='6' width='4' height='14' fill='%234a9'/%3E%3Crect x='22' y='10' width='4' height='9' fill='%234a9'/%3E%3C/svg%3E">
 <style>
 /* ── Reset & base ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
@@ -76,7 +78,7 @@ body{font-size:var(--fz);user-select:none;-webkit-user-select:none}
 #recBtn{color:#944}
 #recBtn.rec{color:#f66;border-color:#633;animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.tsep{width:1px;height:22px;background:#2a2a2a;flex-shrink:0;margin:0 3px}
+.tsep{width:1px;height:22px;background:#333;flex-shrink:0;margin:0 3px}
 #posDisplay{color:#5a9;font-size:calc(var(--fz) + 1px);font-variant-numeric:tabular-nums;
   white-space:nowrap;flex-shrink:0;min-width:72px}
 
@@ -159,6 +161,40 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
 .gnote{margin-top:14px;padding-top:10px;border-top:1px solid #222;
   color:#2e2e2e;font-size:calc(var(--fz) - 2px);line-height:1.6}
 #kbSection{display:none}
+
+/* ── High-contrast overrides for dark/dim working conditions ─────────── */
+body{color:#d0d0d0}
+.btn{color:#c0c0c0;border-color:#363636}
+.btn:hover{background:#2e2e2e;color:#eee}
+.btn.on{color:#6ecff6;border-color:#3a6a80}
+.btn.danger{color:#e07070;border-color:#5a2a2a}
+#appName{color:#f0f0f0}
+#posDisplay{color:#6ecff6}
+#info{color:#a0a0a0;background:#181818;border-top-color:#2a2a2a}
+#hd{background:#181818;border-bottom-color:#2a2a2a}
+#tr{background:#181818;border-top-color:#2a2a2a}
+#insp{background:#181818;border-top-color:#2a2a2a}
+.igrp label{color:#aaa}
+.ival{color:#6ecff6}
+.isep{background:#333}
+.tsep{background:#333}
+#sbHead{background:#181818;border-bottom-color:#2a2a2a}
+#sbHead span{color:#888;letter-spacing:.06em}
+#libList{background:#111}
+.libName{color:#ddd}
+.libDur{color:#888}
+.libRm{color:#666}
+.libRm:hover{color:#ccc;background:#2a2a2a}
+#libDrop{color:#555;border-color:#2a2a2a}
+#bounceSep{background:#111;border-top-color:#1a4a3a;border-bottom-color:#1a3a2a}
+#hint{color:#666;border-color:#2a2a2a}
+input[type=text],input[type=number]{color:#ccc;background:#1c1c1c;border-color:#333}
+input[type=text]::placeholder{color:#555}
+#titleInput{color:#bbb}
+#titleInput::placeholder{color:#444}
+#libSearch::placeholder{color:#555}
+#bpmInput{color:#888}
+/* Ruler and tape label contrast */
 </style>
 </head>
 <body>
@@ -843,6 +879,7 @@ const clipBuf=(c)=>li(c.libId)?.buf??null;
 const clipCol=(c)=>li(c.libId)?.color??'#333';
 // Hoisted helpers — available everywhere regardless of call order
 function isSel(id){return s.selIds.includes(id);}
+function setInfo(msg){const el=document.getElementById('info');if(el)el.textContent=msg;}
 function selPrimary(){return s.clips.find(c=>s.selIds[0]!=null&&c.id===s.selIds[0])||null;}
 function effDur(c){const b=clipBuf(c);if(!b)return 0;const r=(c.rate??1)*Math.pow(2,(c.pitch??0)/12);return Math.max(0,(b.duration-(c.trimStart||0)-(c.trimEnd||0))/Math.max(0.01,r));}
 function totalDur(){return s.clips.length?Math.max(Math.max(...s.clips.map(c=>c.st+effDur(c)))+6,30):30;}
@@ -884,10 +921,10 @@ function drawRuler(){
   const w=tlW();
   rc.fillStyle='#111';rc.fillRect(0,0,w,RULER_H);
   const step=s.pps<20?10:s.pps<50?5:1;
-  rc.font='9px monospace';rc.fillStyle='#555';rc.textAlign='left';
+  rc.font='9px monospace';rc.fillStyle='#888';rc.textAlign='left';
   for(let t=0;t<=w/s.pps;t+=step){
     const x=t*s.pps;
-    rc.strokeStyle='#222';rc.lineWidth=1;rc.beginPath();rc.moveTo(x,RULER_H-5);rc.lineTo(x,RULER_H);rc.stroke();
+    rc.strokeStyle='#2a2a2a';rc.lineWidth=1;rc.beginPath();rc.moveTo(x,RULER_H-5);rc.lineTo(x,RULER_H);rc.stroke();
     rc.fillText(Math.floor(t/60)+':'+String(Math.round(t%60)).padStart(2,'0'),x+2,RULER_H-8);
   }
   if(s.inPoint!=null){const x=s.inPoint*s.pps;rc.fillStyle='#4a8';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x+8,8);rc.closePath();rc.fill();}
@@ -927,7 +964,7 @@ function drawTape(){
     }
   }
   tc.fillStyle='rgba(12,12,12,.9)';tc.fillRect(0,0,20,13);tc.fillRect(0,TAPE_H/2+1,20,13);
-  tc.fillStyle='#333';tc.font='9px monospace';tc.textAlign='left';
+  tc.fillStyle='#888';tc.font='9px monospace';tc.textAlign='left';
   tc.fillText('L',3,11);tc.fillText('R',3,TAPE_H/2+12);
   const px=s.head*s.pps;
   tc.strokeStyle='#c44';tc.lineWidth=1.5;tc.beginPath();tc.moveTo(px,0);tc.lineTo(px,TAPE_H);tc.stroke();
@@ -947,7 +984,7 @@ function drawClip(clip){
   if(fo>0){const fw=Math.min(fo*s.pps,cw),gr=tc.createLinearGradient(x+cw-fw,0,x+cw,0);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.75)');tc.fillStyle=gr;tc.fillRect(x+cw-fw,0,fw,TAPE_H);}
   if(g>1){tc.fillStyle='rgba(200,80,60,.1)';tc.fillRect(x,0,cw,TAPE_H);}
   tc.fillStyle='rgba(0,0,0,.55)';tc.fillRect(x,0,cw,13);
-  tc.fillStyle='#ccc';tc.font='bold 10px -apple-system,monospace';tc.textAlign='left';
+  tc.fillStyle='#f0f0f0';tc.font='bold 10px -apple-system,monospace';tc.textAlign='left';
   const nm=li(clip.libId)?.name??'?';
   const gDb=linTodB(g);const px2=clip.pan||0;
   const pt=clip.pitch??0;const extra=(Math.abs(gDb)>.5?' '+(gDb>=0?'+':'')+gDb.toFixed(1)+'dB':'')+(Math.abs(px2)>.01?' '+fmtPan(px2):'')+(Math.abs(pt)>.1?' '+(pt>0?'+':'')+pt.toFixed(1)+'st':'');
@@ -1412,7 +1449,7 @@ function drawBounceWave(){
   if(!s.bounceBuffer){
     bc2.strokeStyle='#1a4a3a';bc2.setLineDash([4,6]);bc2.lineWidth=1;
     bc2.strokeRect(1,1,W-2,H-2);bc2.setLineDash([]);
-    bc2.fillStyle='#2a6a4a';bc2.font='10px monospace';bc2.textAlign='center';
+    bc2.fillStyle='#4a9';bc2.font='10px monospace';bc2.textAlign='center';
     bc2.fillText('click ◉ render to compute bounce',W/2,H/2+4);
     bc2.textAlign='left';return;
   }
@@ -2367,7 +2404,7 @@ document.getElementById('dlBounceBtn').addEventListener('click',()=>{
 });
 
 // Bounce chain settings sliders
-const bcBind=(id,key,parse,fmt,scale=1)=>{
+function bcBind(id,key,parse,fmt,scale=1){
   document.getElementById(id).addEventListener('input',e=>{
     s.bc[key]=parse(e.target.value)*scale;
     document.getElementById(id+'Val').textContent=fmt(s.bc[key]);
