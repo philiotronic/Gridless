@@ -372,7 +372,7 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
 <!-- Help overlay — gestures + keyboard shortcuts -->
 <div id="overlay">
   <div id="obox">
-    <h2>Stipsels<button id="closeHelp">×</button></h2>
+    <h2>GRIDLESS <span id="versionBadge" style="font-size:10px;color:#5ec88e;font-weight:400;letter-spacing:.05em">v.0.9.3</span><button id="closeHelp">×</button></h2>
     <h3>Gestures / mouse</h3>
     <table class="gtbl">
       <tr><td>Tap / click empty tape</td><td>Move playhead · deselect</td></tr>
@@ -427,7 +427,7 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
       <tr><td>mon</td><td>Monitor mic input through speakers (use headphones)</td></tr>
       <tr><td>Multichannel</td><td>Each input channel → separate library item and clip. Stereo pairs auto-pan L/R. Set interface channels at OS level first.</td></tr>
     </table>
-    <div class="gnote">Stipsels · project files (.json) include all audio · compatible across desktop and iPad</div>
+    <div class="gnote">GRIDLESS · project files (.json) include all audio · compatible across desktop and iPad</div>
   </div>
 </div>
 
@@ -757,7 +757,7 @@ async function runExplode(){
     s.lib.push(newItem);
     computePeaks(nb).then(pk=>{newItem.peaks=pk;if(document.getElementById('libList'))renderLib();});
   }
-  renderLib();scheduleAutosave();
+  if(document.getElementById('libList'))renderLib();scheduleAutosave();
   document.getElementById('explodeOverlay').style.display='none';
   document.getElementById('posDisplay').textContent=`⊹ ${segs.length} segments from "${item.name.slice(0,22)}"`;
   setTimeout(()=>document.getElementById('posDisplay').textContent=fmt(s.head),2500);
@@ -891,7 +891,7 @@ const li    =(id)=>s.lib.find(l=>l.id===id);
 const clipBuf=(c)=>li(c.libId)?.buf??null;
 const clipCol=(c)=>li(c.libId)?.color??'#333';
 // Hoisted helpers — available everywhere regardless of call order
-const VERSION='0.9.2';
+const VERSION='0.9.3';
 console.log('%c GRIDLESS '+VERSION+' ', 'background:#1a3a2a;color:#5ec88e;font-weight:bold;padding:2px 6px;border-radius:3px');
 function isSel(id){return s.selIds.includes(id);}
 function setInfo(msg){try{const el=document.getElementById('info');if(el)el.textContent=msg;}catch(e){}}
@@ -2387,7 +2387,7 @@ document.getElementById('delClipBtn').addEventListener('click',rippleDelete);
 document.getElementById('addBtn').addEventListener('click',()=>document.getElementById('fileInput').click());
 document.getElementById('fileInput').addEventListener('change',async e=>{await loadFiles(e.target.files,null);e.target.value='';});
 document.getElementById('jsonInput').addEventListener('change',async e=>{if(e.target.files[0])await loadProject(e.target.files[0]);e.target.value='';});
-(()=>{const vb=document.getElementById('versionBadge');if(vb)vb.textContent='v.'+VERSION;})();
+(()=>{const vb=document.getElementById('versionBadge');if(vb)vb.textContent='v.'+VERSION;const vb2=document.getElementById('versionBadge');if(vb2)vb2.textContent='v.'+VERSION;})();
 
 // ── Playhead click-to-edit ────────────────────────────────
 function showPosEdit(){

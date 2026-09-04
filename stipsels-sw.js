@@ -1,5 +1,5 @@
 // Stipsels service worker — cache-first, single file
-const CACHE = 'gridless-v1';
+const CACHE = 'gridless-v2';
 const ASSETS = ['./index.html', './stipsels.manifest.json', './stipsels-sw.js'];
 
 self.addEventListener('install', e => {
