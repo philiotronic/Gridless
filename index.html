@@ -217,7 +217,7 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
       <span style="color:#444;font-size:10px">bpm</span>
       <input type="number" id="bpmInput" min="20" max="300" step="0.5" placeholder="—" title="BPM hint grid (very faint — GRIDLESS)" style="width:52px;font-size:10px;padding:2px 4px;background:#1a1a1a;color:#555;border:1px solid #252525;border-radius:3px">
     </label>
-    <button class="btn" id="snapBtn" title="snap to grid [S]">snap</button>
+    <button class="btn" id="snapBtn" title="snap clip placement to 0.1s grid [S]">snap</button>
     <button class="btn" id="fitBtn" title="zoom to fit [F]">⊡</button>
     <button class="btn" id="saveBtn" title="projects &amp; saved slots">≡ projects</button>
     <button class="btn" id="loadBtn" title="import JSON backup">↑ json</button>
@@ -225,7 +225,7 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
     <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
       <span style="color:#444;font-size:10px">bpm</span>
       <input type="number" id="bpmInput" min="20" max="300" step="1" placeholder="—" style="width:48px;font-size:10px;padding:2px 4px">
-      <button class="btn" id="gridBtn" title="show beat grid (hint only — gridless!)">grid</button>
+      <button class="btn" id="gridBtn" title="toggle beat grid overlay (type BPM to set tempo)">grid</button>
     </div>
     <button class="btn" id="helpBtn" title="help / shortcuts [?]">?</button>
     <span id="saveInd" title="not saved" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0;transition:background .4s"></span>
@@ -623,7 +623,7 @@ const RULER_H=22, TAPE_H=180, TRIM_ZONE=HAS_FINE_POINTER?10:22;
 const s={
   lib:[],clips:[],nextId:1,nextLibId:1,colorIdx:0,
   pps:80,head:0,playing:false,playbackSpeed:1,selIds:[],clipboard:[],multiSelect:false,drag:null,
-  bpm:0,showGrid:false,ripple:false,libFilter:'',libSort:'date',
+  bpm:0,showGrid:true,ripple:false,libFilter:'',libSort:'date',
   ctx:null,srcs:[],t0:0,h0:0,raf:null,
   preview:null,
   recording:false,recChannelBuffers:[],recChannelCount:0,
@@ -945,7 +945,7 @@ function drawRuler(){
   if(s.inPoint!=null){const x=s.inPoint*s.pps;rc.fillStyle='#4a8';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x+8,8);rc.closePath();rc.fill();}
   if(s.outPoint!=null){const x=s.outPoint*s.pps;rc.fillStyle='#a44';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x-8,8);rc.closePath();rc.fill();}
   // BPM ghost grid — very faint hint, GRIDLESS remains the approach
-  if(s.bpm>0){
+  if(s.bpm>0&&s.showGrid){
     const beatS=60/s.bpm,beatPx=beatS*s.pps;
     for(let b=0;b*beatPx<w+2;b++){
       const bx=b*beatPx,isBar=b%4===0;
@@ -969,7 +969,7 @@ function drawTape(){
   drawBPMGrid();
   for(const c of s.clips)drawClip(c);
   // BPM ghost grid on tape
-  if(s.bpm>0){
+  if(s.bpm>0&&s.showGrid){
     const beatS=60/s.bpm,beatPx=beatS*s.pps;
     for(let b=0;b*beatPx<w+2;b++){
       const bx=b*beatPx,isBar=b%4===0;
@@ -1698,26 +1698,6 @@ function drawBPMGrid(){
 // ════════════════════════════════════════════════
 // Crossfade adjacent clips
 // ════════════════════════════════════════════════
-function autoXFade(){
-  const ms=Math.max(5,+document.getElementById('xfadeMs').value);
-  const dur=ms/1000;
-  const sorted=[...s.clips].sort((a,b)=>a.st-b.st);
-  snapshot();
-  for(let i=0;i<sorted.length-1;i++){
-    const a=sorted[i],b=sorted[i+1];
-    const aEnd=a.st+effDur(a);
-    const gap=b.st-aEnd;
-    if(gap<=dur+0.001){ // adjacent or overlapping
-      const xf=Math.min(dur,effDur(a)*0.4,effDur(b)*0.4);
-      // Find original clips in s.clips and update
-      const ca=s.clips.find(c=>c.id===a.id);
-      const cb=s.clips.find(c=>c.id===b.id);
-      if(ca)ca.fadeOut=xf;
-      if(cb)cb.fadeIn=xf;
-    }
-  }
-  render();
-}
 
 // ════════════════════════════════════════════════
 // Ripple delete
@@ -1778,40 +1758,7 @@ async function exportSelectedClips(){
 // ════════════════════════════════════════════════
 // Stem export — one file per library source
 // ════════════════════════════════════════════════
-async function stemExport(){
-  if(!s.clips.length)return;
-  const ctx=getCtx(),sr=ctx.sampleRate;
-  const inT=s.inPoint??0;
-  const outT=s.outPoint??Math.max(...s.clips.map(c=>c.st+effDur(c)));
-  const dur=Math.max(0.01,outT-inT);
-  // Group clips by libId
-  const groups={};
-  s.clips.forEach(c=>{if(!groups[c.libId])groups[c.libId]=[];groups[c.libId].push(c);});
-  for(const[libId,clips] of Object.entries(groups)){
-    const item=li(+libId);
-    const offCtx=new OfflineAudioContext(2,Math.ceil(dur*sr),sr);
-    const lim=offCtx.createDynamicsCompressor();lim.threshold.value=-0.5;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.001;lim.release.value=0.1;lim.connect(offCtx.destination);
-    let hasContent=false;
-    for(const c of clips){
-      const buf=clipBuf(c);if(!buf)continue;
-      const ed=effDur(c);if(c.st+ed<=inT||c.st>=outT)continue;
-      const cs=Math.max(0,c.st-inT),ba=Math.max(0,inT-c.st);
-      const bs=(c.trimStart||0)+ba*((c.rate??1)*Math.pow(2,(c.pitch??0)/12));
-      const pd=Math.min(ed-ba,dur-cs);if(pd<=0)continue;
-      const src2=offCtx.createBufferSource();src2.buffer=buf;
-      src2.playbackRate.value=Math.max(0.01,(c.rate??1)*Math.pow(2,(c.pitch??0)/12));
-      const gn=offCtx.createGain();gn.gain.value=c.gain??1;
-      const pn=offCtx.createStereoPanner();pn.pan.value=c.pan||0;
-      src2.connect(gn);gn.connect(pn);pn.connect(lim);
-      src2.start(cs,bs,pd*Math.max(0.01,(c.rate??1)*Math.pow(2,(c.pitch??0)/12)));
-      hasContent=true;
-    }
-    if(!hasContent)continue;
-    const rendered=await offCtx.startRendering();
-    const name=(item?.name.replace(/\.[^.]+$/,'')||`stem_${libId}`)+'_stem.wav';
-    dl(new Blob([encodeWAV16(rendered)],{type:'audio/wav'}),name);
-  }
-}
+
 
 // ════════════════════════════════════════════════
 // LUFS estimation (ITU-R BS.1770 approximation)
@@ -2336,13 +2283,11 @@ document.getElementById('expStemsBtn').addEventListener('click',exportStems);
 // library search/sort — wired below via state vars
 document.getElementById('pasteBtn').addEventListener('click',pasteClips);
 // BPM grid
-document.getElementById('bpmInput').addEventListener('input',e=>{s.bpm=+e.target.value||0;render();});
 document.getElementById('gridBtn').addEventListener('click',()=>{s.showGrid=!s.showGrid;document.getElementById('gridBtn').classList.toggle('on',s.showGrid);render();});
 // Ripple + XFade
 document.getElementById('rippleBtn').addEventListener('click',()=>{s.ripple=!s.ripple;document.getElementById('rippleBtn').classList.toggle('on',s.ripple);});
-document.getElementById('xfadeBtn').addEventListener('click',autoXFade);
 // Stem export
-document.getElementById('expBtn').addEventListener('contextmenu',e=>{e.preventDefault();stemExport();});
+document.getElementById('expBtn').addEventListener('contextmenu',e=>{e.preventDefault();exportStems();});
 // Export selected (Shift+click wav button)
 document.getElementById('expBtn').addEventListener('click',e=>{if(e.shiftKey&&s.selIds.length)exportSelectedClips();else doExport();});
 // ── Library search and sort ──────────────────────────
@@ -2496,6 +2441,7 @@ document.querySelectorAll('.bcMode').forEach(b=>b.addEventListener('click',()=>{
 // Projects / storage
 document.getElementById('saveBtn').addEventListener('click',showProjOverlay);
 document.getElementById('closeProjOverlay').addEventListener('click',hideProjOverlay);
+document.getElementById('exportJsonBtn').addEventListener('click',()=>{hideProjOverlay();saveProject();});
 document.getElementById('projOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)hideProjOverlay();});
 document.getElementById('newProjectBtn').addEventListener('click',()=>{
   if(!s.lib.length||(s.lib.length&&confirm('Start a new project? Unsaved changes will be lost.'))){
