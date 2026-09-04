@@ -2,7 +2,7 @@
   "name": "Stipsels",
   "short_name": "Stipsels",
   "description": "Browser-based tape editor \u2014 record, arrange, mix, export",
-  "start_url": "./stipsels.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0e0e0e",
   "theme_color": "#141414",
@@ -20,7 +20,7 @@
     }
   ],
   "scope": "./",
-  "id": "./stipsels.html",
+  "id": "./index.html",
   "prefer_related_applications": false,
   "display_override": [
     "standalone",
