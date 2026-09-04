@@ -754,7 +754,7 @@ async function runExplode(){
     const newItem={id:s.nextLibId++,name:`${baseName}_${String(i+1).padStart(3,'0')}`,
       rawData,buf:nb,duration:nb.duration,channels:nCh,sampleRate:sr,color,isRec:false,thumbEl:null,peaks:null};
     s.lib.push(newItem);
-    computePeaks(nb).then(pk=>{newItem.peaks=pk;renderLib();});
+    computePeaks(nb).then(pk=>{newItem.peaks=pk;if(document.getElementById('libList'))renderLib();});
   }
   renderLib();scheduleAutosave();
   document.getElementById('explodeOverlay').style.display='none';
@@ -813,13 +813,15 @@ function serializeForIDB(id){
 }
 
 async function loadFromIDB(data){
-  stop();s.lib=[];s.clips=[];s.selIds=[];s.clipboard=[];const ctx=getCtx();
+  stop();s.lib=[];s.clips=[];s.selIds=[];s.clipboard=[];
+  // OfflineAudioContext for decode — no user gesture required (unlike live AudioContext)
+  const decCtx=new OfflineAudioContext(1,1,44100);
   for(const item of data.lib){
     try{
-      const buf=await ctx.decodeAudioData(item.rawData.slice(0));
+      const buf=await decCtx.decodeAudioData(item.rawData.slice(0));
       const restored={...item,buf,thumbEl:null,peaks:null};
       s.lib.push(restored);
-      computePeaks(buf).then(pk=>{restored.peaks=pk;renderLib();});
+      computePeaks(buf).then(pk=>{restored.peaks=pk;if(document.getElementById('libList'))renderLib();});
     }catch(e){}
   }
   s.clips=data.clips.map(c=>({...c,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0}));
@@ -889,7 +891,7 @@ const clipBuf=(c)=>li(c.libId)?.buf??null;
 const clipCol=(c)=>li(c.libId)?.color??'#333';
 // Hoisted helpers — available everywhere regardless of call order
 function isSel(id){return s.selIds.includes(id);}
-function setInfo(msg){const el=document.getElementById('info');if(el)el.textContent=msg;}
+function setInfo(msg){try{const el=document.getElementById('info');if(el)el.textContent=msg;}catch(e){}}
 function selPrimary(){return s.clips.find(c=>s.selIds[0]!=null&&c.id===s.selIds[0])||null;}
 function effDur(c){const b=clipBuf(c);if(!b)return 0;const r=(c.rate??1)*Math.pow(2,(c.pitch??0)/12);return Math.max(0,(b.duration-(c.trimStart||0)-(c.trimEnd||0))/Math.max(0.01,r));}
 function totalDur(){return s.clips.length?Math.max(Math.max(...s.clips.map(c=>c.st+effDur(c)))+6,30):30;}
@@ -1114,7 +1116,8 @@ function drawThumb(canvas,buf,progress=null,peaks=null){
 function renderLib(){
   stopPreview();
   const list=document.getElementById('libList'),drop=document.getElementById('libDrop');
-  list.innerHTML='';list.appendChild(drop);
+  if(!list)return; // DOM not ready yet
+  list.innerHTML='';if(drop)list.appendChild(drop);
   // Filter + sort
   let items=[...s.lib];
   if(s.libFilter){const q=s.libFilter.toLowerCase();items=items.filter(l=>l.name.toLowerCase().includes(q));}
@@ -1177,8 +1180,7 @@ function renderLib(){
     row.addEventListener('click',()=>startPreview(item));
     list.appendChild(row);
   }
-  const lc=document.getElementById('libCount');
-  if(lc)lc.textContent=s.lib.length?s.lib.length+' file'+(s.lib.length>1?'s':''):'';
+  try{const lc=document.getElementById('libCount');if(lc)lc.textContent=s.lib.length?(s.lib.length+' file'+(s.lib.length>1?'s':'')):'';}catch(_){}
 }
 
 function removeLibItem(id){
@@ -1352,7 +1354,7 @@ function finishMultiChannelRecording(){
     const pan=nch===1?0:nch===2?(ch===0?-.8:.8):((ch/(nch-1))*2-1);
     const item={id:s.nextLibId++,name,rawData,buf:ab,duration:ab.duration,channels:1,sampleRate:sr,color,isRec:true,thumbEl:null,peaks:null};
     s.lib.push(item);s.clips.push({id:s.nextId++,libId:item.id,st:s.recordHeadStart,gain:1,pan,fadeIn:0,fadeOut:0,trimStart:0,trimEnd:0,rate:1,pitch:0,mono:false,eq:null});
-    computePeaks(ab).then(pk=>{item.peaks=pk;renderLib();});
+    computePeaks(ab).then(pk=>{item.peaks=pk;if(document.getElementById('libList'))renderLib();});
   }
   s.recChannelBuffers=[];renderLib();render();scheduleAutosave();
 }
@@ -2039,7 +2041,7 @@ function clipToLibrary(){
   const item={id:s.nextLibId++,name:(li(clip.libId)?.name.replace(/\.[^.]+$/,'')||'clip')+'-cut',
     rawData,buf:nb,duration:nb.duration,channels:nb.numberOfChannels,sampleRate:sr,color,isRec:false,thumbEl:null};
   s.lib.push(item);
-  computePeaks(nb).then(pk=>{item.peaks=pk;renderLib();});
+  computePeaks(nb).then(pk=>{item.peaks=pk;if(document.getElementById('libList'))renderLib();});
   renderLib();
 }
 
