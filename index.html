@@ -338,8 +338,9 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
     <button class="btn" id="recBtn" title="record [R]">●</button>
     <button class="btn" id="preBtn" title="2-second pre-roll before recording">pre</button>
     <button class="btn" id="monBtn" title="monitor mic input while recording">mon</button>
+    <input id="posInput" type="text" placeholder="0:00.000" title="M:SS.mmm — Enter to set" style="display:none;width:80px;background:#1c1c1c;color:#7dd8f8;border:1px solid #3a7a9a;border-radius:3px;font-family:inherit;font-size:13px;font-weight:600;text-align:center;padding:1px 4px;font-variant-numeric:tabular-nums">
     <canvas id="meter" width="60" height="18"></canvas>
-    <span id="posDisplay">0:00.000</span>
+    <span id="posDisplay" title="click to type exact time" style="cursor:pointer">0:00.000</span>
     <div class="tsep"></div>
     <button class="btn" id="inBtn" title="set in-point [I]">⊣in</button>
     <button class="btn" id="outBtn" title="set out-point [O]">out⊢</button>
@@ -890,6 +891,8 @@ const li    =(id)=>s.lib.find(l=>l.id===id);
 const clipBuf=(c)=>li(c.libId)?.buf??null;
 const clipCol=(c)=>li(c.libId)?.color??'#333';
 // Hoisted helpers — available everywhere regardless of call order
+const VERSION='0.9.2';
+console.log('%c GRIDLESS '+VERSION+' ', 'background:#1a3a2a;color:#5ec88e;font-weight:bold;padding:2px 6px;border-radius:3px');
 function isSel(id){return s.selIds.includes(id);}
 function setInfo(msg){try{const el=document.getElementById('info');if(el)el.textContent=msg;}catch(e){}}
 function selPrimary(){return s.clips.find(c=>s.selIds[0]!=null&&c.id===s.selIds[0])||null;}
@@ -1582,10 +1585,6 @@ async function doBounce(){
     node.connect(comp);node=comp;
   }
   const outGn=procCtx.createGain();outGn.gain.value=Math.pow(10,bc.outputGain/20);
-  // Bounce EQ
-  const bcEqGains=[0,1,2,3].map(i=>s.bc['eq'+i]||0);
-  const eqOutNode=buildEQChain(offCtx,node,bcEqGains);
-  if(eqOutNode!==node)node=eqOutNode;
   node.connect(outGn);node=outGn;
   // Limiter (brickwall)
   const lim=procCtx.createDynamicsCompressor();
@@ -1859,14 +1858,22 @@ function openColorPicker(item,anchorEl){
 // EQ helper: build EQ chain in audio graph
 // ════════════════════════════════════════════════
 const EQ_BANDS=[[80,'lowshelf'],[400,'peaking'],[3000,'peaking'],[12000,'highshelf']];
-function buildEQChain(ctx,startNode,gains){
+function buildEQChain(ctx,startNode,eq){
+  // Accepts: null | {ls,mid,hs} (clip EQ) | [{f,g,q,t},...] (bounce EQ)
+  if(!eq)return startNode;
+  let bands;
+  if(Array.isArray(eq)){
+    bands=eq.map(b=>({freq:b.f,type:b.t,gain:b.g||0,q:b.q||0.8}));
+  }else{
+    bands=[{freq:120,type:'lowshelf',gain:eq.ls||0,q:0.8},{freq:1000,type:'peaking',gain:eq.mid||0,q:1.0},{freq:8000,type:'highshelf',gain:eq.hs||0,q:0.8}];
+  }
+  if(!bands.some(b=>Math.abs(b.gain)>0.01))return startNode;
   let chain=startNode;
-  if(!gains||!gains.some(g=>Math.abs(g)>0.01))return chain;
-  EQ_BANDS.forEach(([freq,type],i)=>{
-    const f=ctx.createBiquadFilter();f.type=type;f.frequency.value=freq;
-    f.gain.value=gains[i]||0;f.Q.value=0.8;
+  for(const b of bands){
+    if(Math.abs(b.gain)<=0.01)continue;
+    const f=ctx.createBiquadFilter();f.type=b.type;f.frequency.value=b.freq;f.gain.value=b.gain;f.Q.value=b.q;
     chain.connect(f);chain=f;
-  });
+  }
   return chain;
 }
 
@@ -2380,6 +2387,38 @@ document.getElementById('delClipBtn').addEventListener('click',rippleDelete);
 document.getElementById('addBtn').addEventListener('click',()=>document.getElementById('fileInput').click());
 document.getElementById('fileInput').addEventListener('change',async e=>{await loadFiles(e.target.files,null);e.target.value='';});
 document.getElementById('jsonInput').addEventListener('change',async e=>{if(e.target.files[0])await loadProject(e.target.files[0]);e.target.value='';});
+(()=>{const vb=document.getElementById('versionBadge');if(vb)vb.textContent='v.'+VERSION;})();
+
+// ── Playhead click-to-edit ────────────────────────────────
+function showPosEdit(){
+  if(s.playing)return;
+  const disp=document.getElementById('posDisplay');
+  const inp=document.getElementById('posInput');
+  if(!disp||!inp)return;
+  inp.value=fmt(s.head);
+  disp.style.display='none';
+  inp.style.display='inline';
+  inp.focus();inp.select();
+}
+function hidePosEdit(){
+  const disp=document.getElementById('posDisplay');
+  const inp=document.getElementById('posInput');
+  if(!disp||!inp)return;
+  const raw=inp.value.trim();
+  const parts=raw.split(':');
+  let t=parts.length>=2?(+parts[0])*60+(+parts[1]):(+parts[0]);
+  if(!isNaN(t)&&t>=0){s.head=Math.max(0,t);render();}
+  disp.textContent=fmt(s.head);
+  inp.style.display='none';
+  disp.style.display='';
+}
+document.getElementById('posDisplay').addEventListener('click',showPosEdit);
+document.getElementById('posInput').addEventListener('blur',hidePosEdit);
+document.getElementById('posInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();hidePosEdit();}
+  if(e.key==='Escape'){document.getElementById('posInput').value=fmt(s.head);hidePosEdit();}
+});
+
 document.getElementById('helpBtn').addEventListener('click',()=>showHelp(true));
 
 // Master playback speed
