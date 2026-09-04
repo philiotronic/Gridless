@@ -10,7 +10,7 @@
 <!-- manifest injected by JS (CORS blocks file:// origins) -->
 <!-- apple-touch-icon set via JS below (iOS requires PNG) -->
 <title>GRIDLESS</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23141414'/%3E%3Crect x='2' y='14' width='28' height='4' fill='%232a4a5e'/%3E%3Crect x='4' y='8' width='4' height='11' fill='%234a9'/%3E%3Crect x='10' y='11' width='4' height='7' fill='%234a9'/%3E%3Crect x='16' y='6' width='4' height='14' fill='%234a9'/%3E%3Crect x='22' y='10' width='4' height='9' fill='%234a9'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230B0D10'/%3E%3Crect x='2' y='14' width='28' height='4' fill='%23163F50'/%3E%3Crect x='4' y='8' width='4' height='11' fill='%2370E0FF'/%3E%3Crect x='10' y='11' width='4' height='7' fill='%2370E0FF'/%3E%3Crect x='16' y='6' width='4' height='14' fill='%2370E0FF'/%3E%3Crect x='22' y='10' width='4' height='9' fill='%2370E0FF'/%3E%3C/svg%3E">
 <style>
 /* ── Reset & base ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
@@ -74,10 +74,11 @@ body{font-size:var(--fz);user-select:none;-webkit-user-select:none}
 .btn:active{background:#2a2a2a;color:#ccc}
 .btn.on{color:#5ab;border-color:#2a5a6a}
 .btn.danger{color:#944;border-color:#3a2222}
+.btn.danger:hover{background:#2a1818}
 #recBtn{color:#944}
 #recBtn.rec{color:#f66;border-color:#633;animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.tsep{width:1px;height:22px;background:#333;flex-shrink:0;margin:0 3px}
+.tsep{width:1px;height:22px;background:#2a2a2a;flex-shrink:0;margin:0 3px}
 #posDisplay{color:#5a9;font-size:calc(var(--fz) + 1px);font-variant-numeric:tabular-nums;
   white-space:nowrap;flex-shrink:0;min-width:72px}
 
@@ -161,49 +162,60 @@ kbd{background:#252525;border:1px solid #2e2e2e;border-radius:3px;
   color:#2e2e2e;font-size:calc(var(--fz) - 2px);line-height:1.6}
 #kbSection{display:none}
 
-/* ── High-contrast: readable in dim/dark studio conditions ───────────── */
-:root{color-scheme:dark}
-body{color:#e0e0e0}
-.btn{color:#d0d0d0;border-color:#404040;background:#212121}
-.btn:hover{background:#303030;color:#fff}
-.btn.on{color:#7dd8f8;border-color:#3a7a9a;background:#1a3040}
-.btn.danger{color:#f08080;border-color:#6a2a2a}
-#recBtn{color:#e07070}
-#appName{color:#ffffff;font-weight:700}
-#posDisplay{color:#7dd8f8;font-size:13px;font-weight:600}
-#info{color:#b0b0b0;background:#151515;border-top-color:#303030;font-size:11px}
-#hd{background:#161616;border-bottom-color:#303030}
-#tr{background:#161616;border-top-color:#303030}
-#insp{background:#161616;border-top-color:#303030}
-.igrp label{color:#c0c0c0;font-weight:500}
-.ival{color:#7dd8f8;font-weight:600}
-.isep{background:#383838}
-.tsep{background:#383838}
-#sbHead{background:#161616;border-bottom-color:#303030}
-#libCount{color:#888;font-size:10px;flex-shrink:0}
-#libList{background:#0f0f0f}
-.libRow{background:#1c1c1c;border-color:#303030}
-.libRow:hover{background:#242424}
-.libName{color:#e8e8e8;font-weight:500}
-.libDur{color:#999}
-.libRm{color:#777}
-.libRm:hover{color:#ddd;background:#333}
-.libAdd{background:#1a3020;color:#5ec88e;border-color:#2a6040}
-#libDrop{color:#666;border-color:#2a2a2a}
-#bounceSep{background:#0f0f0f;border-top-color:#1a5a3a;border-bottom-color:#1a3a20}
-#hint{color:#777;border-color:#303030}
-input[type=text],input[type=number]{color:#e0e0e0;background:#1c1c1c;border-color:#404040}
-input[type=text]::placeholder,input[type=number]::placeholder{color:#555}
-#titleInput{color:#d0d0d0;border-bottom-color:#404040}
-#titleInput::placeholder{color:#555}
-#libSearch::placeholder{color:#666}
-#bpmInput{color:#aaa;background:#1c1c1c;border-color:#333;border-radius:3px}
-/* Inspector */
-#insp .igrp{gap:6px}
-/* Inspector range tracks brighter */
-input[type=range]::-webkit-slider-runnable-track{background:#383838}
-/* Bounce overlay */
-#bounceOverlay .bcVal{color:#7dd8f8;font-weight:600}
+/* ══ LOW-VISION PALETTE ══════════════════════════════════════
+   #0B0D10 bg | #171A1F panels | #22262D elevated
+   #4A4F56 dividers | #555B63 hi-dividers
+   #C5CAD0 secondary | #E0E3E7 labels
+   #F2F2F2 primary | #FFFFFF critical
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0B0D10; --panel:#171A1F; --surface:#22262D;
+  --div:#4A4F56; --divhi:#555B63;
+  --t2:#C5CAD0; --t1:#E0E3E7; --t0:#F2F2F2; --thi:#FFFFFF;
+  --acc:#70E0FF; --acc-bg:#163F50; --grn:#5EC88E; --red:#FF5555;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--t0)}
+#app{background:var(--bg)}
+#hd,#tr,#insp,#info,#sbHead{background:var(--panel)}
+#hd{border-bottom:1px solid var(--div)}
+#tr{border-top:1px solid var(--div)}
+#insp{border-top:1px solid var(--div)}
+#info{border-top:1px solid var(--div);color:var(--t1);font-size:11px}
+#sbHead{border-bottom:1px solid var(--div)}
+#libList{background:var(--bg)}
+#libCount{color:var(--t2);font-size:10px}
+#hint{color:var(--t2);border:1px solid var(--div);background:var(--panel)}
+#appName{color:var(--thi);font-weight:800;letter-spacing:-.5px}
+#posDisplay{color:var(--acc);font-size:14px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+.btn{background:var(--surface);color:var(--t0);border:1px solid var(--div);border-radius:6px;font-weight:500}
+.btn:hover{background:#2E333C;color:var(--thi);border-color:var(--divhi)}
+.btn.on{color:var(--acc);border-color:var(--acc);background:var(--acc-bg)}
+.btn.danger{color:var(--red);border-color:#6A2A2A}
+.btn.danger:hover{background:#2A1818;color:#FF9090}
+#recBtn{color:var(--red)}
+#recBtn.rec{color:#FF6666;border-color:#993333;animation:pulse 1s ease-in-out infinite}
+.ival{color:var(--acc);font-weight:600}
+.igrp label{color:var(--t1);font-weight:500}
+.isep,.tsep{background:var(--divhi)}
+.libRow{background:var(--surface);border:1px solid var(--div);border-left-width:3px;border-radius:6px}
+.libRow:hover{background:#2E333C;border-color:var(--divhi)}
+.libRow.previewing{border-color:var(--red)!important}
+.libName{color:var(--t0);font-weight:600}
+.libDur{color:var(--t2);font-size:10px}
+.libAdd{background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc);font-weight:600}
+.libRm{color:var(--t2)}.libRm:hover{color:var(--thi);background:var(--surface)}
+#libDrop{color:var(--divhi);border-color:var(--div)}
+#bounceSep{background:var(--panel);border-top-color:#1E5C3A;border-bottom-color:#1E3A25}
+input[type=text],input[type=number]{color:var(--t0);background:var(--surface);border:1px solid var(--div);border-radius:4px}
+input[type=text]:focus,input[type=number]:focus{border-color:var(--acc)}
+input[type=text]::placeholder,input[type=number]::placeholder{color:var(--t2)}
+#titleInput{color:var(--t0);border-bottom:1px solid var(--div)}
+#titleInput::placeholder{color:var(--t2)}
+#bpmInput{color:var(--t1);font-weight:600;background:var(--surface);border:1px solid var(--div);border-radius:3px}
+input[type=range]::-webkit-slider-runnable-track{background:var(--divhi);height:4px}
+input[type=range]::-webkit-slider-thumb{background:var(--acc);width:20px;height:20px;margin-top:-8px}
+@media(pointer:coarse){input[type=text],input[type=number]{font-size:16px!important}}
 </style>
 </head>
 <body>
@@ -215,17 +227,16 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
     <div style="flex:1"></div>
     <label style="display:flex;align-items:center;gap:4px;flex-shrink:0">
       <span style="color:#444;font-size:10px">bpm</span>
-      <input type="number" id="bpmInput" min="20" max="300" step="0.5" placeholder="—" title="BPM hint grid (very faint — GRIDLESS)" style="width:52px;font-size:10px;padding:2px 4px;background:#1a1a1a;color:#555;border:1px solid #252525;border-radius:3px">
+      <input type="number" id="bpmInput" min="20" max="300" step="0.5" value="120" title="BPM hint grid (very faint — GRIDLESS)" style="width:52px;font-size:10px;padding:2px 4px;background:#1a1a1a;color:#555;border:1px solid #252525;border-radius:3px">
     </label>
-    <button class="btn" id="snapBtn" title="snap clip placement to 0.1s grid [S]">snap</button>
+    <button class="btn" id="snapBtn" title="snap to grid [S]">snap</button>
     <button class="btn" id="fitBtn" title="zoom to fit [F]">⊡</button>
     <button class="btn" id="saveBtn" title="projects &amp; saved slots">≡ projects</button>
     <button class="btn" id="loadBtn" title="import JSON backup">↑ json</button>
     <input type="file" id="jsonInput" accept=".json" style="display:none">
     <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
       <span style="color:#444;font-size:10px">bpm</span>
-      <input type="number" id="bpmInput" min="20" max="300" step="1" placeholder="—" style="width:48px;font-size:10px;padding:2px 4px">
-      <button class="btn" id="gridBtn" title="toggle beat grid overlay (type BPM to set tempo)">grid</button>
+      <button class="btn" id="gridBtn" title="show beat grid (hint only — gridless!)">grid</button>
     </div>
     <button class="btn" id="helpBtn" title="help / shortcuts [?]">?</button>
     <span id="saveInd" title="not saved" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0;transition:background .4s"></span>
@@ -254,7 +265,7 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
 
     <aside id="sb">
       <div id="sbHead">
-        <span id="libCount" style="color:#777;font-size:10px;flex-shrink:0"></span>
+        <span id="libCount" style="color:#C5CAD0;font-size:10px;flex-shrink:0"></span>
         <input type="text" id="libSearch" placeholder="filter…" style="flex:1;min-width:0;max-width:100px;background:#111;color:#aaa;border:1px solid #1e1e1e;border-radius:4px;padding:3px 6px;font-family:inherit;font-size:10px">
     <button class="btn" id="libSortBtn" style="font-size:9px;min-height:24px;padding:0 6px;min-width:auto" title="sort: date / name / duration">⇅ date</button>
     <button id="addBtn">+ add</button>
@@ -338,9 +349,9 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
     <button class="btn" id="recBtn" title="record [R]">●</button>
     <button class="btn" id="preBtn" title="2-second pre-roll before recording">pre</button>
     <button class="btn" id="monBtn" title="monitor mic input while recording">mon</button>
-    <input id="posInput" type="text" placeholder="0:00.000" title="M:SS.mmm — Enter to set" style="display:none;width:80px;background:#1c1c1c;color:#7dd8f8;border:1px solid #3a7a9a;border-radius:3px;font-family:inherit;font-size:13px;font-weight:600;text-align:center;padding:1px 4px;font-variant-numeric:tabular-nums">
+    <input id="posInput" type="text" placeholder="0:00.000" style="display:none;width:82px;background:#22262D;color:#70E0FF;border:1px solid #70E0FF;border-radius:4px;font-family:inherit;font-size:13px;font-weight:700;text-align:center;padding:1px 4px;font-variant-numeric:tabular-nums">
     <canvas id="meter" width="60" height="18"></canvas>
-    <span id="posDisplay" title="click to type exact time" style="cursor:pointer">0:00.000</span>
+    <span id="posDisplay" title="click to set playhead time" style="cursor:pointer">0:00.000</span>
     <div class="tsep"></div>
     <button class="btn" id="inBtn" title="set in-point [I]">⊣in</button>
     <button class="btn" id="outBtn" title="set out-point [O]">out⊢</button>
@@ -372,7 +383,7 @@ input[type=range]::-webkit-slider-runnable-track{background:#383838}
 <!-- Help overlay — gestures + keyboard shortcuts -->
 <div id="overlay">
   <div id="obox">
-    <h2>GRIDLESS <span id="versionBadge" style="font-size:10px;color:#5ec88e;font-weight:400;letter-spacing:.05em">v.0.9.3</span><button id="closeHelp">×</button></h2>
+    <h2>GRIDLESS <span id="versionBadge" style="font-size:10px;color:#5EC88E;font-weight:400">v.0.9.3</span><button id="closeHelp">×</button></h2>
     <h3>Gestures / mouse</h3>
     <table class="gtbl">
       <tr><td>Tap / click empty tape</td><td>Move playhead · deselect</td></tr>
@@ -623,7 +634,7 @@ const RULER_H=22, TAPE_H=180, TRIM_ZONE=HAS_FINE_POINTER?10:22;
 const s={
   lib:[],clips:[],nextId:1,nextLibId:1,colorIdx:0,
   pps:80,head:0,playing:false,playbackSpeed:1,selIds:[],clipboard:[],multiSelect:false,drag:null,
-  bpm:0,showGrid:true,ripple:false,libFilter:'',libSort:'date',
+  bpm:120,showGrid:true,ripple:false,libFilter:'',libSort:'date',
   ctx:null,srcs:[],t0:0,h0:0,raf:null,
   preview:null,
   recording:false,recChannelBuffers:[],recChannelCount:0,
@@ -755,9 +766,9 @@ async function runExplode(){
     const newItem={id:s.nextLibId++,name:`${baseName}_${String(i+1).padStart(3,'0')}`,
       rawData,buf:nb,duration:nb.duration,channels:nCh,sampleRate:sr,color,isRec:false,thumbEl:null,peaks:null};
     s.lib.push(newItem);
-    computePeaks(nb).then(pk=>{newItem.peaks=pk;if(document.getElementById('libList'))renderLib();});
+    computePeaks(nb).then(pk=>{newItem.peaks=pk;renderLib();});
   }
-  if(document.getElementById('libList'))renderLib();scheduleAutosave();
+  renderLib();scheduleAutosave();
   document.getElementById('explodeOverlay').style.display='none';
   document.getElementById('posDisplay').textContent=`⊹ ${segs.length} segments from "${item.name.slice(0,22)}"`;
   setTimeout(()=>document.getElementById('posDisplay').textContent=fmt(s.head),2500);
@@ -815,7 +826,6 @@ function serializeForIDB(id){
 
 async function loadFromIDB(data){
   stop();s.lib=[];s.clips=[];s.selIds=[];s.clipboard=[];
-  // OfflineAudioContext for decode — no user gesture required (unlike live AudioContext)
   const decCtx=new OfflineAudioContext(1,1,44100);
   for(const item of data.lib){
     try{
@@ -892,8 +902,9 @@ const clipBuf=(c)=>li(c.libId)?.buf??null;
 const clipCol=(c)=>li(c.libId)?.color??'#333';
 // Hoisted helpers — available everywhere regardless of call order
 const VERSION='0.9.3';
-console.log('%c GRIDLESS '+VERSION+' ', 'background:#1a3a2a;color:#5ec88e;font-weight:bold;padding:2px 6px;border-radius:3px');
+console.log('%c GRIDLESS '+VERSION+' ','background:#163F50;color:#70E0FF;font-weight:bold;padding:2px 6px;border-radius:3px');
 function isSel(id){return s.selIds.includes(id);}
+function selPrimary(){return s.clips.find(c=>s.selIds[0]!=null&&c.id===s.selIds[0])||null;}
 function setInfo(msg){try{const el=document.getElementById('info');if(el)el.textContent=msg;}catch(e){}}
 function selPrimary(){return s.clips.find(c=>s.selIds[0]!=null&&c.id===s.selIds[0])||null;}
 function effDur(c){const b=clipBuf(c);if(!b)return 0;const r=(c.rate??1)*Math.pow(2,(c.pitch??0)/12);return Math.max(0,(b.duration-(c.trimStart||0)-(c.trimEnd||0))/Math.max(0.01,r));}
@@ -934,34 +945,34 @@ function render(){resize();drawRuler();drawTape();}
 
 function drawRuler(){
   const w=tlW();
-  rc.fillStyle='#111';rc.fillRect(0,0,w,RULER_H);
+  rc.fillStyle='#0B0D10';rc.fillRect(0,0,w,RULER_H);
   const step=s.pps<20?10:s.pps<50?5:1;
-  rc.font='9px monospace';rc.fillStyle='#aaa';rc.textAlign='left';
+  rc.font='9px monospace';rc.fillStyle='#555';rc.textAlign='left';
   for(let t=0;t<=w/s.pps;t+=step){
     const x=t*s.pps;
-    rc.strokeStyle='#383838';rc.lineWidth=1;rc.beginPath();rc.moveTo(x,RULER_H-5);rc.lineTo(x,RULER_H);rc.stroke();
+    rc.strokeStyle='#222';rc.lineWidth=1;rc.beginPath();rc.moveTo(x,RULER_H-5);rc.lineTo(x,RULER_H);rc.stroke();
     rc.fillText(Math.floor(t/60)+':'+String(Math.round(t%60)).padStart(2,'0'),x+2,RULER_H-8);
   }
-  if(s.inPoint!=null){const x=s.inPoint*s.pps;rc.fillStyle='#4a8';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x+8,8);rc.closePath();rc.fill();}
-  if(s.outPoint!=null){const x=s.outPoint*s.pps;rc.fillStyle='#a44';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x-8,8);rc.closePath();rc.fill();}
+  if(s.inPoint!=null){const x=s.inPoint*s.pps;rc.fillStyle='#4AE88A';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x+8,8);rc.closePath();rc.fill();}
+  if(s.outPoint!=null){const x=s.outPoint*s.pps;rc.fillStyle='#FF5555';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x-8,8);rc.closePath();rc.fill();}
   // BPM ghost grid — very faint hint, GRIDLESS remains the approach
   if(s.bpm>0&&s.showGrid){
     const beatS=60/s.bpm,beatPx=beatS*s.pps;
     for(let b=0;b*beatPx<w+2;b++){
       const bx=b*beatPx,isBar=b%4===0;
-      rc.strokeStyle=isBar?'rgba(255,255,255,0.12)':'rgba(255,255,255,0.05)';
+      rc.strokeStyle=isBar?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.15)';
       rc.lineWidth=isBar?1:0.5;
       rc.beginPath();rc.moveTo(bx,isBar?0:RULER_H-4);rc.lineTo(bx,RULER_H);rc.stroke();
     }
   }
   const px=s.head*s.pps;
-  rc.strokeStyle='#c44';rc.lineWidth=1.5;rc.beginPath();rc.moveTo(px,0);rc.lineTo(px,RULER_H);rc.stroke();
+  rc.strokeStyle='#FF5555';rc.lineWidth=2;rc.beginPath();rc.moveTo(px,0);rc.lineTo(px,RULER_H);rc.stroke();
 }
 
 function drawTape(){
   const w=tlW();
-  tc.fillStyle='#0c0c0c';tc.fillRect(0,0,w,TAPE_H);
-  tc.strokeStyle='#282828';tc.lineWidth=1;tc.beginPath();tc.moveTo(0,TAPE_H/2);tc.lineTo(w,TAPE_H/2);tc.stroke();
+  tc.fillStyle='#0B0D10';tc.fillRect(0,0,w,TAPE_H);
+  tc.strokeStyle='#181818';tc.lineWidth=1;tc.beginPath();tc.moveTo(0,TAPE_H/2);tc.lineTo(w,TAPE_H/2);tc.stroke();
   if(s.inPoint!=null||s.outPoint!=null){
     const x0=(s.inPoint??0)*s.pps,x1=(s.outPoint??totalDur())*s.pps;
     tc.fillStyle='rgba(70,160,100,.05)';tc.fillRect(x0,0,x1-x0,TAPE_H);
@@ -973,17 +984,17 @@ function drawTape(){
     const beatS=60/s.bpm,beatPx=beatS*s.pps;
     for(let b=0;b*beatPx<w+2;b++){
       const bx=b*beatPx,isBar=b%4===0;
-      tc.strokeStyle=isBar?'rgba(255,255,255,0.06)':'rgba(255,255,255,0.025)';
+      tc.strokeStyle=isBar?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.10)';
       tc.lineWidth=isBar?1:0.5;
       tc.beginPath();tc.moveTo(bx,0);tc.lineTo(bx,TAPE_H);tc.stroke();
     }
   }
-  tc.fillStyle='rgba(12,12,12,.9)';tc.fillRect(0,0,20,13);tc.fillRect(0,TAPE_H/2+1,20,13);
-  tc.fillStyle='#bbb';tc.font='bold 9px monospace';tc.textAlign='left';
+  tc.fillStyle='rgba(11,13,16,.95)';tc.fillRect(0,0,20,13);tc.fillRect(0,TAPE_H/2+1,20,13);
+  tc.fillStyle='#F0F0F0';tc.font='bold 10px monospace';tc.textAlign='left';
   tc.fillText('L',3,11);tc.fillText('R',3,TAPE_H/2+12);
   const px=s.head*s.pps;
-  tc.strokeStyle='#c44';tc.lineWidth=1.5;tc.beginPath();tc.moveTo(px,0);tc.lineTo(px,TAPE_H);tc.stroke();
-  tc.fillStyle='#c44';tc.beginPath();tc.moveTo(px-4,0);tc.lineTo(px+4,0);tc.lineTo(px,7);tc.closePath();tc.fill();
+  tc.strokeStyle='#FF5555';tc.lineWidth=2;tc.beginPath();tc.moveTo(px,0);tc.lineTo(px,TAPE_H);tc.stroke();
+  tc.fillStyle='#FF5555';tc.beginPath();tc.moveTo(px-5,0);tc.lineTo(px+4,0);tc.lineTo(px,7);tc.closePath();tc.fill();
   tc.textAlign='left';
 }
 
@@ -991,21 +1002,21 @@ function drawClip(clip){
   const buf=clipBuf(clip);if(!buf)return;
   const ed=effDur(clip);if(ed<=0)return;
   const x=clip.st*s.pps,cw=ed*s.pps,sel=isSel(clip.id),isPrimary=clip.id===s.selIds[0],g=clip.gain??1;
-  tc.fillStyle=clipCol(clip)+(sel?'ff':'aa');tc.fillRect(x,0,cw,TAPE_H);
+  tc.fillStyle=clipCol(clip)+(sel?'ff':'bb');tc.fillRect(x,0,cw,TAPE_H);
   drawWaveClip(buf,clip,0,x,0,cw,TAPE_H/2);
   drawWaveClip(buf,clip,buf.numberOfChannels>1?1:0,x,TAPE_H/2,cw,TAPE_H/2);
   const fi=clip.fadeIn||0,fo=clip.fadeOut||0;
   if(fi>0){const fw=Math.min(fi*s.pps,cw),gr=tc.createLinearGradient(x,0,x+fw,0);gr.addColorStop(0,'rgba(0,0,0,.75)');gr.addColorStop(1,'rgba(0,0,0,0)');tc.fillStyle=gr;tc.fillRect(x,0,fw,TAPE_H);}
   if(fo>0){const fw=Math.min(fo*s.pps,cw),gr=tc.createLinearGradient(x+cw-fw,0,x+cw,0);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.75)');tc.fillStyle=gr;tc.fillRect(x+cw-fw,0,fw,TAPE_H);}
   if(g>1){tc.fillStyle='rgba(200,80,60,.1)';tc.fillRect(x,0,cw,TAPE_H);}
-  tc.fillStyle='rgba(0,0,0,.45)';tc.fillRect(x,0,cw,13);
-  tc.fillStyle='#f0f0f0';tc.font='bold 10px -apple-system,monospace';tc.textAlign='left';
+  tc.fillStyle='rgba(0,0,0,.7)';tc.fillRect(x,0,cw,15);
+  tc.fillStyle='#FFFFFF';tc.font='bold 11px -apple-system,monospace';tc.textAlign='left';
   const nm=li(clip.libId)?.name??'?';
   const gDb=linTodB(g);const px2=clip.pan||0;
   const pt=clip.pitch??0;const extra=(Math.abs(gDb)>.5?' '+(gDb>=0?'+':'')+gDb.toFixed(1)+'dB':'')+(Math.abs(px2)>.01?' '+fmtPan(px2):'')+(Math.abs(pt)>.1?' '+(pt>0?'+':'')+pt.toFixed(1)+'st':'');
   tc.fillText((nm.length>20?nm.slice(0,18)+'…':nm)+extra,x+3,10);
-  tc.fillStyle='rgba(255,255,255,.12)';tc.fillRect(x,0,TRIM_ZONE,TAPE_H);tc.fillRect(x+cw-TRIM_ZONE,0,TRIM_ZONE,TAPE_H);
-  if(sel){tc.strokeStyle=isPrimary?'rgba(150,180,220,.9)':'rgba(220,180,80,.75)';tc.lineWidth=2;tc.strokeRect(x+1,1,cw-2,TAPE_H-2);}
+  tc.fillStyle='rgba(255,255,255,.25)';tc.fillRect(x,0,TRIM_ZONE,TAPE_H);tc.fillRect(x+cw-TRIM_ZONE,0,TRIM_ZONE,TAPE_H);
+  if(sel){tc.strokeStyle=isPrimary?'#70E0FF':'#FFD070';tc.lineWidth=2.5;tc.strokeRect(x+1,1,cw-2,TAPE_H-2);}
   tc.textAlign='left';
 }
 
@@ -1093,7 +1104,7 @@ function drawThumb(canvas,buf,progress=null,peaks=null){
   const cx=canvas.getContext('2d');cx.setTransform(dpr,0,0,dpr,0,0);
   cx.fillStyle='#111';cx.fillRect(0,0,W,H);
   const mid=H/2,half=mid-2;
-  cx.strokeStyle='rgba(180,210,255,.6)';cx.lineWidth=1;cx.beginPath();
+  cx.strokeStyle='rgba(180,220,255,.85)';cx.lineWidth=1;cx.beginPath();
   if(peaks?.[0]){
     // Fast path — use pre-computed peaks
     const p=peaks[0];const nP=p.mn.length;
@@ -1119,7 +1130,7 @@ function drawThumb(canvas,buf,progress=null,peaks=null){
 function renderLib(){
   stopPreview();
   const list=document.getElementById('libList'),drop=document.getElementById('libDrop');
-  if(!list)return; // DOM not ready yet
+  if(!list)return;
   list.innerHTML='';if(drop)list.appendChild(drop);
   // Filter + sort
   let items=[...s.lib];
@@ -1218,7 +1229,7 @@ function stopPreview(){
 // ════════════════════════════════════════════════
 function getCtx(){
   if(!s.ctx)s.ctx=new(window.AudioContext||window.webkitAudioContext)();
-  return s.ctx; // resume() only called from user-gesture paths (play, bounce)
+  return s.ctx;
 }
 
 function makeChain(ctx,clip,dest,headTime){
@@ -1464,7 +1475,7 @@ function drawBounceWave(){
   if(!s.bounceBuffer){
     bc2.strokeStyle='#1a4a3a';bc2.setLineDash([4,6]);bc2.lineWidth=1;
     bc2.strokeRect(1,1,W-2,H-2);bc2.setLineDash([]);
-    bc2.fillStyle='#4a9';bc2.font='10px monospace';bc2.textAlign='center';
+    bc2.fillStyle='#2a6a4a';bc2.font='10px monospace';bc2.textAlign='center';
     bc2.fillText('click ◉ render to compute bounce',W/2,H/2+4);
     bc2.textAlign='left';return;
   }
@@ -1477,7 +1488,7 @@ function drawBounceWave(){
     const cols=Math.max(1,Math.floor(cw));
     const spc=Math.max(1,Math.floor(data.length/cols));
     const mid=cy+ch/2,half=ch/2-2;
-    bc2.strokeStyle='rgba(80,220,140,0.75)';bc2.lineWidth=1;bc2.beginPath();
+    bc2.strokeStyle='rgba(80,200,130,0.55)';bc2.lineWidth=1;bc2.beginPath();
     for(let j=0;j<cols;j++){
       const a=j*spc,b=Math.min(a+spc,data.length);let mn=0,mx=0;
       for(let k=a;k<b;k++){if(data[k]<mn)mn=data[k];if(data[k]>mx)mx=data[k];}
@@ -1699,6 +1710,7 @@ function drawBPMGrid(){
 // Crossfade adjacent clips
 // ════════════════════════════════════════════════
 
+
 // ════════════════════════════════════════════════
 // Ripple delete
 // ════════════════════════════════════════════════
@@ -1806,21 +1818,13 @@ function openColorPicker(item,anchorEl){
 // ════════════════════════════════════════════════
 const EQ_BANDS=[[80,'lowshelf'],[400,'peaking'],[3000,'peaking'],[12000,'highshelf']];
 function buildEQChain(ctx,startNode,eq){
-  // Accepts: null | {ls,mid,hs} (clip EQ) | [{f,g,q,t},...] (bounce EQ)
   if(!eq)return startNode;
   let bands;
-  if(Array.isArray(eq)){
-    bands=eq.map(b=>({freq:b.f,type:b.t,gain:b.g||0,q:b.q||0.8}));
-  }else{
-    bands=[{freq:120,type:'lowshelf',gain:eq.ls||0,q:0.8},{freq:1000,type:'peaking',gain:eq.mid||0,q:1.0},{freq:8000,type:'highshelf',gain:eq.hs||0,q:0.8}];
-  }
+  if(Array.isArray(eq)){bands=eq.map(b=>({freq:b.f,type:b.t,gain:b.g||0,q:b.q||0.8}));}
+  else{bands=[{freq:120,type:'lowshelf',gain:eq.ls||0,q:0.8},{freq:1000,type:'peaking',gain:eq.mid||0,q:1.0},{freq:8000,type:'highshelf',gain:eq.hs||0,q:0.8}];}
   if(!bands.some(b=>Math.abs(b.gain)>0.01))return startNode;
   let chain=startNode;
-  for(const b of bands){
-    if(Math.abs(b.gain)<=0.01)continue;
-    const f=ctx.createBiquadFilter();f.type=b.type;f.frequency.value=b.freq;f.gain.value=b.gain;f.Q.value=b.q;
-    chain.connect(f);chain=f;
-  }
+  for(const b of bands){if(Math.abs(b.gain)<=0.01)continue;const f=ctx.createBiquadFilter();f.type=b.type;f.frequency.value=b.freq;f.gain.value=b.gain;f.Q.value=b.q;chain.connect(f);chain=f;}
   return chain;
 }
 
@@ -2332,38 +2336,13 @@ document.getElementById('delClipBtn').addEventListener('click',rippleDelete);
 document.getElementById('addBtn').addEventListener('click',()=>document.getElementById('fileInput').click());
 document.getElementById('fileInput').addEventListener('change',async e=>{await loadFiles(e.target.files,null);e.target.value='';});
 document.getElementById('jsonInput').addEventListener('change',async e=>{if(e.target.files[0])await loadProject(e.target.files[0]);e.target.value='';});
-(()=>{const vb=document.getElementById('versionBadge');if(vb)vb.textContent='v.'+VERSION;const vb2=document.getElementById('versionBadge');if(vb2)vb2.textContent='v.'+VERSION;})();
 
-// ── Playhead click-to-edit ────────────────────────────────
-function showPosEdit(){
-  if(s.playing)return;
-  const disp=document.getElementById('posDisplay');
-  const inp=document.getElementById('posInput');
-  if(!disp||!inp)return;
-  inp.value=fmt(s.head);
-  disp.style.display='none';
-  inp.style.display='inline';
-  inp.focus();inp.select();
-}
-function hidePosEdit(){
-  const disp=document.getElementById('posDisplay');
-  const inp=document.getElementById('posInput');
-  if(!disp||!inp)return;
-  const raw=inp.value.trim();
-  const parts=raw.split(':');
-  let t=parts.length>=2?(+parts[0])*60+(+parts[1]):(+parts[0]);
-  if(!isNaN(t)&&t>=0){s.head=Math.max(0,t);render();}
-  disp.textContent=fmt(s.head);
-  inp.style.display='none';
-  disp.style.display='';
-}
+function showPosEdit(){if(s.playing)return;const d=document.getElementById('posDisplay'),i=document.getElementById('posInput');if(!d||!i)return;i.value=fmt(s.head);d.style.display='none';i.style.display='inline';i.focus();i.select();}
+function hidePosEdit(){const d=document.getElementById('posDisplay'),i=document.getElementById('posInput');if(!d||!i)return;const p=i.value.trim().split(':');let t=p.length>=2?(+p[0])*60+(+p[1]):(+p[0]);if(!isNaN(t)&&t>=0){s.head=Math.max(0,t);render();}d.textContent=fmt(s.head);i.style.display='none';d.style.display='';}
+
 document.getElementById('posDisplay').addEventListener('click',showPosEdit);
 document.getElementById('posInput').addEventListener('blur',hidePosEdit);
-document.getElementById('posInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter'){e.preventDefault();hidePosEdit();}
-  if(e.key==='Escape'){document.getElementById('posInput').value=fmt(s.head);hidePosEdit();}
-});
-
+document.getElementById('posInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();hidePosEdit();}if(e.key==='Escape'){document.getElementById('posInput').value=fmt(s.head);hidePosEdit();}});
 document.getElementById('helpBtn').addEventListener('click',()=>showHelp(true));
 
 // Master playback speed
@@ -2407,7 +2386,7 @@ function bcBind(id,key,parse,fmt,scale=1){
     s.bounceBuffer=null;document.getElementById('bounceStatus').textContent='settings changed — re-render';document.getElementById('bounceStatus').style.color='#8a6';
     drawBounceWave();
   });
-};
+}
 bcBind('bcHp','hpFreq',Number,v=>Math.round(v)+' Hz');
 bcBind('bcLp','lpFreq',Number,v=>v>=20000?'20k Hz':(v/1000).toFixed(1)+'k Hz');
 bcBind('bcThresh','compThreshold',Number,v=>(v<0?'−':'')+Math.abs(v)+' dB');
