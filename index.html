@@ -920,8 +920,10 @@ let _rafPending=false;
 function scheduleRender(){
   if(_rafPending)return;
   _rafPending=true;
-  requestAnimationFrame(()=>{_rafPending=false;render();});
+  requestAnimationFrame(()=>{_rafPending=false;if(_dirty||true)render();});
 }
+// Convenience: invalidate + schedule in one call
+function invalidateAndRender(){invalidate();scheduleRender();}
 const mCv=document.getElementById('meter'), mCx=mCv.getContext('2d');
 
 // ════════════════════════════════════════════════
@@ -981,9 +983,9 @@ function render(){
 
   if(_dirty){
     // Rebuild offscreen caches (clips, ticks, waveforms — everything except playhead)
-    [rulerOff,tapeOff].forEach((c,i)=>{c.width=Math.ceil(w*dpr);c.height=Math.ceil((i?TAPE_H:RULER_H)*dpr);});
 
     // --- Ruler static content ---
+    rulerOff.width=Math.ceil(w*dpr);rulerOff.height=Math.ceil(RULER_H*dpr);
     const realRc=rc; rc=rulerOff.getContext('2d'); rc.setTransform(dpr,0,0,dpr,0,0);
     rc.fillStyle='#0B0D10';rc.fillRect(0,0,w,RULER_H);
     const step=s.pps<15?10:s.pps<50?5:1;
@@ -1003,6 +1005,7 @@ function render(){
     rc=realRc;
 
     // --- Tape static content ---
+    tapeOff.width=Math.ceil(w*dpr);tapeOff.height=Math.ceil(TAPE_H*dpr);
     const realTc=tc; tc=tapeOff.getContext('2d'); tc.setTransform(dpr,0,0,dpr,0,0);
     drawTape(); // existing drawTape minus playhead — tc is now offscreen
     tc=realTc;
@@ -1010,14 +1013,16 @@ function render(){
   }
 
   // Blit caches + draw playheads (fast, every frame)
+  rc.setTransform(1,0,0,1,0,0);
+  rc.clearRect(0,0,ruler.width,ruler.height);
   rc.setTransform(dpr,0,0,dpr,0,0);
-  rc.clearRect(0,0,w,RULER_H);
   rc.drawImage(rulerOff,0,0,rulerOff.width,rulerOff.height,0,0,w,RULER_H);
   const rpx=s.head*s.pps;
   rc.strokeStyle='#FF5555';rc.lineWidth=2;rc.beginPath();rc.moveTo(rpx,0);rc.lineTo(rpx,RULER_H);rc.stroke();
 
+  tc.setTransform(1,0,0,1,0,0);
+  tc.clearRect(0,0,tape.width,tape.height);
   tc.setTransform(dpr,0,0,dpr,0,0);
-  tc.clearRect(0,0,w,TAPE_H);
   tc.drawImage(tapeOff,0,0,tapeOff.width,tapeOff.height,0,0,w,TAPE_H);
   const tpx=s.head*s.pps;
   tc.strokeStyle='#FF5555';tc.lineWidth=2;tc.beginPath();tc.moveTo(tpx,0);tc.lineTo(tpx,TAPE_H);tc.stroke();
@@ -1091,9 +1096,6 @@ function drawClip(clip){
   const ed=effDur(clip);if(ed<=0)return;
   const trk=clip.track??0, ty=trk*TRACK_H;
   const x=clip.st*s.pps,cw=ed*s.pps;
-  // Skip clips completely outside visible scroll window
-  const sl=tlWrap.scrollLeft,vw=tlWrap.clientWidth;
-  if(x+cw<sl-20||x>sl+vw+20)return;
   const sel=isSel(clip.id),isPrimary=clip.id===s.selIds[0],g=clip.gain??1;
   tc.fillStyle=clipCol(clip)+(sel?'ff':'bb');tc.fillRect(x,ty,cw,TRACK_H);
   drawWaveClip(buf,clip,0,x,ty,cw,TRACK_H/2);
@@ -1383,7 +1385,7 @@ async function play(){
     const rpx=s.head*s.pps;
     rc.strokeStyle='#FF5555';rc.lineWidth=2;rc.beginPath();rc.moveTo(rpx,0);rc.lineTo(rpx,RULER_H);rc.stroke();
     tc.setTransform(dpr,0,0,dpr,0,0);
-    if(tapeOff.width){tc.clearRect(0,0,w,TAPE_H);tc.drawImage(tapeOff,0,0,tapeOff.width,tapeOff.height,0,0,w,TAPE_H);}
+    if(tapeOff.width){tc.setTransform(1,0,0,1,0,0);tc.clearRect(0,0,tape.width,tape.height);tc.setTransform(dpr,0,0,dpr,0,0);tc.drawImage(tapeOff,0,0,tapeOff.width,tapeOff.height,0,0,w,TAPE_H);}
     const tpx=s.head*s.pps;
     tc.strokeStyle='#FF5555';tc.lineWidth=2;tc.beginPath();tc.moveTo(tpx,0);tc.lineTo(tpx,TAPE_H);tc.stroke();
     tc.fillStyle='#FF5555';tc.beginPath();tc.moveTo(tpx-5,0);tc.lineTo(tpx+5,0);tc.lineTo(tpx,9);tc.closePath();tc.fill();
@@ -2316,7 +2318,6 @@ ruler.addEventListener('pointerdown',e=>{
 });
 
 // Desktop: scroll wheel on timeline
-tlWrap.addEventListener('scroll',()=>{invalidate();scheduleRender();});
 tlWrap.addEventListener('wheel',e=>{
   if(e.ctrlKey||e.metaKey){e.preventDefault();s.pps=Math.max(2,Math.min(600,s.pps*(e.deltaY<0?1.1:.9)));_lastW=0;_tlWCache=0;invalidate();scheduleRender();}
 },{ passive:false });
