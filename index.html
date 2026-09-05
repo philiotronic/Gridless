@@ -916,6 +916,12 @@ let _tlWCache=0;
 function invalidateTlW(){_tlWCache=0;}
 let _lastW=0,_lastDpr=0;
 function invalidate(){_dirty=true;}
+let _rafPending=false;
+function scheduleRender(){
+  if(_rafPending)return;
+  _rafPending=true;
+  requestAnimationFrame(()=>{_rafPending=false;render();});
+}
 const mCv=document.getElementById('meter'), mCx=mCv.getContext('2d');
 
 // ════════════════════════════════════════════════
@@ -1083,8 +1089,12 @@ function drawTape(){
 function drawClip(clip){
   const buf=clipBuf(clip);if(!buf)return;
   const ed=effDur(clip);if(ed<=0)return;
-  const trk=clip.track??0, ty=trk*TRACK_H; // track Y offset
-  const x=clip.st*s.pps,cw=ed*s.pps,sel=isSel(clip.id),isPrimary=clip.id===s.selIds[0],g=clip.gain??1;
+  const trk=clip.track??0, ty=trk*TRACK_H;
+  const x=clip.st*s.pps,cw=ed*s.pps;
+  // Skip clips completely outside visible scroll window
+  const sl=tlWrap.scrollLeft,vw=tlWrap.clientWidth;
+  if(x+cw<sl-20||x>sl+vw+20)return;
+  const sel=isSel(clip.id),isPrimary=clip.id===s.selIds[0],g=clip.gain??1;
   tc.fillStyle=clipCol(clip)+(sel?'ff':'bb');tc.fillRect(x,ty,cw,TRACK_H);
   drawWaveClip(buf,clip,0,x,ty,cw,TRACK_H/2);
   drawWaveClip(buf,clip,buf.numberOfChannels>1?1:0,x,ty+TRACK_H/2,cw,TRACK_H/2);
@@ -1123,34 +1133,37 @@ function drawWaveClip(buf,clip,ch,cx,ry,rw,rh){
 // ════════════════════════════════════════════════
 const PEAK_RES = 2000; // points per channel; 16 KB per channel — negligible
 
-async function computePeaks(buf) {
-  const nCh = buf.numberOfChannels;
-  const len = buf.length;
-  const spc = Math.max(1, Math.floor(len / PEAK_RES));
-  const peaks = [];
-
-  for (let ch = 0; ch < nCh; ch++) {
-    const data = buf.getChannelData(ch);
-    const mn = new Float32Array(PEAK_RES);
-    const mx = new Float32Array(PEAK_RES);
-    const CHUNK = 400; // points per tick — ~5ms per chunk at 44100Hz
-
-    for (let p0 = 0; p0 < PEAK_RES; p0 += CHUNK) {
-      const p1 = Math.min(p0 + CHUNK, PEAK_RES);
-      for (let p = p0; p < p1; p++) {
-        const s0 = p * spc, s1 = Math.min(s0 + spc, len);
-        let lo = 0, hi = 0;
-        for (let i = s0; i < s1; i++) {
-          if (data[i] < lo) lo = data[i];
-          if (data[i] > hi) hi = data[i];
-        }
-        mn[p] = lo; mx[p] = hi;
-      }
-      // Yield to main thread between chunks — keeps UI responsive
-      await new Promise(r => setTimeout(r, 0));
-    }
-    peaks.push({ mn, mx });
+// Peak worker — runs off the main thread so UI stays smooth
+const _peakWorkerCode=`
+self.onmessage=function(e){
+  const{ch,data,nPoints}=e.data;
+  const len=data.length,spc=Math.max(1,Math.floor(len/nPoints));
+  const mn=new Float32Array(nPoints),mx=new Float32Array(nPoints);
+  for(let p=0;p<nPoints;p++){
+    const s0=p*spc,s1=Math.min(s0+spc,len);let lo=0,hi=0;
+    for(let i=s0;i<s1;i++){if(data[i]<lo)lo=data[i];if(data[i]>hi)hi=data[i];}
+    mn[p]=lo;mx[p]=hi;
   }
+  self.postMessage({ch,mn:mn.buffer,mx:mx.buffer},[mn.buffer,mx.buffer]);
+};`;
+const _peakWorkerURL=URL.createObjectURL(new Blob([_peakWorkerCode],{type:'text/javascript'}));
+
+async function computePeaks(buf){
+  const nCh=buf.numberOfChannels,nPoints=PEAK_RES;
+  const peaks=new Array(nCh);
+  await Promise.all(Array.from({length:nCh},(_,ch)=>new Promise(res=>{
+    const data=buf.getChannelData(ch);
+    // Clone the data to transfer to worker (buf stays intact for playback)
+    const copy=new Float32Array(data.length);copy.set(data);
+    const w=new Worker(_peakWorkerURL);
+    w.postMessage({ch,data:copy.buffer,nPoints},[copy.buffer]);
+    w.onmessage=e=>{
+      w.terminate();
+      peaks[ch]={mn:new Float32Array(e.data.mn),mx:new Float32Array(e.data.mx)};
+      res();
+    };
+    w.onerror=()=>{w.terminate();peaks[ch]=null;res();};
+  })));
   return peaks;
 }
 
@@ -1496,8 +1509,8 @@ function updateInsp(){
   const eq=clip.eq||{ls:0,mid:0,hs:0};
   ['L','M','H'].forEach((k,i)=>{const keys=['ls','mid','hs'];const v=eq[keys[i]]??0;document.getElementById('ieq'+k).value=v;document.getElementById('ieq'+k+'V').textContent=(v>0?'+':'')+v.toFixed(1);});
 }
-document.getElementById('igain').addEventListener('input',e=>{const c=selPrimary();if(!c)return;c.gain=dBtoLin(+e.target.value);document.getElementById('igainV').textContent=fmtdB(+e.target.value);render();});
-document.getElementById('ipan').addEventListener('input',e=>{const c=selPrimary();if(!c)return;c.pan=e.target.value/100;document.getElementById('ipanV').textContent=fmtPan(e.target.value/100);render();});
+document.getElementById('igain').addEventListener('input',e=>{const c=selPrimary();if(!c)return;c.gain=dBtoLin(+e.target.value);document.getElementById('igainV').textContent=fmtdB(+e.target.value);invalidate();scheduleRender();});
+document.getElementById('ipan').addEventListener('input',e=>{const c=selPrimary();if(!c)return;c.pan=e.target.value/100;document.getElementById('ipanV').textContent=fmtPan(e.target.value/100);invalidate();scheduleRender();});
 document.getElementById('iFI').addEventListener('change',e=>{const c=selPrimary();if(c){c.fadeIn=Math.max(0,+e.target.value);render();}});
 document.getElementById('iFO').addEventListener('change',e=>{const c=selPrimary();if(c){c.fadeOut=Math.max(0,+e.target.value);render();}});
 document.getElementById('iTS').addEventListener('change',e=>{
@@ -1511,7 +1524,7 @@ document.getElementById('iTE').addEventListener('change',e=>{
 });
 document.getElementById('iRate').addEventListener('input',e=>{
   const c=selPrimary();if(!c)return;
-  c.rate=Math.max(0.01,+e.target.value);document.getElementById('iRateV').textContent=c.rate.toFixed(2)+'×';render();
+  c.rate=Math.max(0.01,+e.target.value);document.getElementById('iRateV').textContent=c.rate.toFixed(2)+'×';invalidate();scheduleRender();
 });
 document.getElementById('iPitch').addEventListener('input',e=>{
   const c=selPrimary();if(!c)return;
@@ -1525,7 +1538,7 @@ document.getElementById('iPitch').addEventListener('input',e=>{
     if(!c.eq)c.eq={ls:0,mid:0,hs:0};
     c.eq[keys[i]]=+e.target.value;
     document.getElementById('ieq'+k+'V').textContent=(+e.target.value>0?'+':'')+parseFloat(e.target.value).toFixed(1);
-    render();
+    invalidate();scheduleRender();
   });
 });
 document.getElementById('iMono').addEventListener('click',()=>{
@@ -2220,17 +2233,19 @@ async function loadFiles(files,startTime=null){
 // Pointer interaction — unified mouse + touch
 // touch-action:none on canvases; pointer events handle everything
 // ════════════════════════════════════════════════
-function getTapeX(e){const r=tlWrap.getBoundingClientRect();return e.clientX-r.left+tlWrap.scrollLeft;}
-function getTapeY(e){return e.clientY-tape.getBoundingClientRect().top;}
+function getTapeX(e){const r=_wrapRect||tlWrap.getBoundingClientRect();return e.clientX-r.left+tlWrap.scrollLeft;}
+function getTapeY(e){const r=_tapeRect||tape.getBoundingClientRect();return e.clientY-r.top;}
 function yToTrack(y){return Math.max(0,Math.min(N_TRACKS-1,Math.floor(y/TRACK_H)));}
 function hitClip(x,y){const trk=yToTrack(y);for(let i=s.clips.length-1;i>=0;i--){const c=s.clips[i];if((c.track??0)!==trk)continue;const cx=c.st*s.pps;if(x>=cx&&x<=cx+effDur(c)*s.pps)return c;}return null;}
 function getZone(clip,x,y){const cx=clip.st*s.pps,cw=effDur(clip)*s.pps,lx=x-cx;if(lx<TRIM_ZONE)return 'trimLeft';if(lx>cw-TRIM_ZONE)return 'trimRight';return 'move';}
 
 const ptrs=new Map();
 let ptrAction=null,pinchStart=null;
+let _tapeRect=null,_wrapRect=null; // cached during drag
 
 tape.addEventListener('pointerdown',e=>{
   tape.setPointerCapture(e.pointerId);
+  _tapeRect=tape.getBoundingClientRect();_wrapRect=tlWrap.getBoundingClientRect();
   ptrs.set(e.pointerId,{clientX:e.clientX,clientY:e.clientY});
   if(ptrs.size===2){
     ptrAction=null;const pts=[...ptrs.values()];
@@ -2249,7 +2264,7 @@ tape.addEventListener('pointermove',e=>{
   const ptr=ptrs.get(e.pointerId);if(ptr){ptr.clientX=e.clientX;ptr.clientY=e.clientY;}
   if(ptrs.size>=2&&pinchStart){
     const pts=[...ptrs.values()];const dist=Math.hypot(pts[0].clientX-pts[1].clientX,pts[0].clientY-pts[1].clientY);
-    s.pps=Math.max(2,Math.min(600,pinchStart.pps*(dist/pinchStart.dist)));render();return;
+    s.pps=Math.max(2,Math.min(600,pinchStart.pps*(dist/pinchStart.dist)));_lastW=0;_tlWCache=0;invalidate();scheduleRender();return;
   }
   // Desktop cursor feedback
   if(e.pointerType==='mouse'&&!ptrAction&&!s.playing){
@@ -2260,19 +2275,20 @@ tape.addEventListener('pointermove',e=>{
   const x=getTapeX(e);
   if(ptrAction.type==='pending'){if(Math.abs(e.clientX-ptrAction.startCX)>8){snapshot();ptrAction.type='moveClip';ptrAction.moved=true;}}
   else if(ptrAction.type==='emptyPending'){if(Math.abs(e.clientX-ptrAction.startCX)>6){ptrAction.type='scroll';ptrAction.moved=true;}}
-  if(ptrAction.type==='moveClip'){const clip=s.clips.find(c=>c.id===ptrAction.clipId);if(clip){clip.st=Math.max(0,snapT(x/s.pps-ptrAction.dragOff));clip.track=yToTrack(getTapeY(e));s.activeTrack=clip.track;invalidate();render();tape.style.cursor='grabbing';}}
-  else if(ptrAction.type==='scroll'){tlWrap.scrollLeft=ptrAction.startSL-(e.clientX-ptrAction.startCX);}
+  if(ptrAction.type==='moveClip'){const clip=s.clips.find(c=>c.id===ptrAction.clipId);if(clip){clip.st=Math.max(0,snapT(x/s.pps-ptrAction.dragOff));clip.track=yToTrack(getTapeY(e));s.activeTrack=clip.track;invalidate();scheduleRender();tape.style.cursor='grabbing';}}
+  else if(ptrAction.type==='scroll'){tlWrap.scrollLeft=ptrAction.startSL-(e.clientX-ptrAction.startCX);invalidate();scheduleRender();}
   else if(ptrAction.type==='trimLeft'){
     const clip=s.clips.find(c=>c.id===ptrAction.clipId),buf=clipBuf(clip);
-    if(clip&&buf){const dx=x/s.pps-ptrAction.startTX,newTS=Math.max(0,Math.min(ptrAction.origTS+dx,buf.duration-(clip.trimEnd||0)-.01));clip.st=Math.max(0,ptrAction.origSt+(newTS-ptrAction.origTS));clip.trimStart=newTS;ptrAction.moved=true;render();}
+    if(clip&&buf){const dx=x/s.pps-ptrAction.startTX,newTS=Math.max(0,Math.min(ptrAction.origTS+dx,buf.duration-(clip.trimEnd||0)-.01));clip.st=Math.max(0,ptrAction.origSt+(newTS-ptrAction.origTS));clip.trimStart=newTS;ptrAction.moved=true;invalidate();scheduleRender();}
   }else if(ptrAction.type==='trimRight'){
     const clip=s.clips.find(c=>c.id===ptrAction.clipId),buf=clipBuf(clip);
-    if(clip&&buf){const dx=x/s.pps-ptrAction.startTX;clip.trimEnd=Math.max(0,Math.min(ptrAction.origTE-dx,buf.duration-(clip.trimStart||0)-.01));ptrAction.moved=true;render();}
+    if(clip&&buf){const dx=x/s.pps-ptrAction.startTX;clip.trimEnd=Math.max(0,Math.min(ptrAction.origTE-dx,buf.duration-(clip.trimStart||0)-.01));ptrAction.moved=true;invalidate();scheduleRender();}
   }
 });
 
 tape.addEventListener('pointerup',e=>{
   ptrs.delete(e.pointerId);if(ptrs.size<2)pinchStart=null;
+  _tapeRect=null;_wrapRect=null;
   if(e.pointerType==='mouse')tape.style.cursor='crosshair';
   if(!ptrAction||s.playing)return;
   if(ptrAction.type==='pending'&&!ptrAction.moved){
@@ -2300,8 +2316,9 @@ ruler.addEventListener('pointerdown',e=>{
 });
 
 // Desktop: scroll wheel on timeline
+tlWrap.addEventListener('scroll',()=>{invalidate();scheduleRender();});
 tlWrap.addEventListener('wheel',e=>{
-  if(e.ctrlKey||e.metaKey){e.preventDefault();s.pps=Math.max(2,Math.min(600,s.pps*(e.deltaY<0?1.1:.9)));render();}
+  if(e.ctrlKey||e.metaKey){e.preventDefault();s.pps=Math.max(2,Math.min(600,s.pps*(e.deltaY<0?1.1:.9)));_lastW=0;_tlWCache=0;invalidate();scheduleRender();}
 },{ passive:false });
 
 // File drop onto tape
