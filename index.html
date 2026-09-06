@@ -834,7 +834,7 @@ function idbDelete(key){
 function serializeForIDB(id){
   return{id,savedAt:Date.now(),
     title:document.getElementById('titleInput').value,
-    pps:s.pps,head:s.head,inPoint:s.inPoint,outPoint:s.outPoint,
+    pps:s.pps,head:s.head,inPoint:s.inPoint,outPoint:s.outPoint,bpm:s.bpm??0,activeTrack:s.activeTrack??0,playbackSpeed:s.playbackSpeed??1,
     nextId:s.nextId,nextLibId:s.nextLibId,colorIdx:s.colorIdx,
     lib:s.lib.map(l=>({id:l.id,name:l.name,rawData:l.rawData,duration:l.duration,channels:l.channels,sampleRate:l.sampleRate,color:l.color,isRec:l.isRec||false})),
     clips:s.clips.map(c=>({id:c.id,libId:c.libId,st:c.st,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0,rate:c.rate??1,pitch:c.pitch??0,mono:c.mono??false,eq:c.eq||null,track:c.track??0})),bc:s.bc};
@@ -855,7 +855,14 @@ async function loadFromIDB(data){
   s.pps=data.pps??80;s.head=data.head??0;s.inPoint=data.inPoint??null;s.outPoint=data.outPoint??null;
   s.nextId=data.nextId??1;s.nextLibId=data.nextLibId??1;s.colorIdx=data.colorIdx??0;
   if(data.title)document.getElementById('titleInput').value=data.title;
-  renderLib();render();s.undoStack=[];s.redoStack=[];setSaveInd('saved');
+  if(data.bc)Object.assign(s.bc,data.bc);
+  if(data.playbackSpeed){s.playbackSpeed=data.playbackSpeed;const sl=document.getElementById('speedSlider');if(sl){sl.value=s.playbackSpeed;document.getElementById('speedVal').textContent=s.playbackSpeed.toFixed(2)+'×';}}
+  if(data.bpm!==undefined){s.bpm=data.bpm;const bi=document.getElementById('bpmInput');if(bi)bi.value=s.bpm||'';}
+  // Ensure clips have all required fields
+  s.clips=s.clips.map(c=>({...c,rate:c.rate??1,pitch:c.pitch??0,mono:c.mono??false,eq:c.eq||null,track:c.track??0}));
+  _libElCache.clear();_tlWCache=0;invalidate();
+  renderLib();render();drawBounceWave();s.undoStack=[];s.redoStack=[];setSaveInd('saved');
+  setActiveTrack(s.activeTrack??0);
 }
 
 // Auto-save
@@ -1368,7 +1375,8 @@ async function play(){
 }
 function stop(){
   s.playing=false;document.getElementById('playBtn').textContent='▶';document.getElementById('playBtn').classList.remove('on');
-  s.srcs.forEach(src=>{try{src.stop();}catch(e){}});s.srcs=[];if(s.raf){cancelAnimationFrame(s.raf);s.raf=null;}render();
+  s.srcs.forEach(src=>{try{src.stop();}catch(e){}});s.srcs=[];if(s.raf){cancelAnimationFrame(s.raf);s.raf=null;}
+  // Don't call render here — caller is responsible; avoids redundant rebuilds
 }
 
 // ════════════════════════════════════════════════
@@ -2146,7 +2154,7 @@ function b642ab(b64){const bin=atob(b64),bytes=new Uint8Array(bin.length);for(le
 function saveProject(){
   if(!s.lib.length)return;
   const proj={version:2,pps:s.pps,head:s.head,inPoint:s.inPoint,outPoint:s.outPoint,
-    title:document.getElementById('titleInput').value,playbackSpeed:s.playbackSpeed??1,nextId:s.nextId,nextLibId:s.nextLibId,colorIdx:s.colorIdx,
+    title:document.getElementById('titleInput').value,playbackSpeed:s.playbackSpeed??1,bpm:s.bpm??0,activeTrack:s.activeTrack??0,nextId:s.nextId,nextLibId:s.nextLibId,colorIdx:s.colorIdx,
     lib:s.lib.map(l=>({id:l.id,name:l.name,data:ab2b64(l.rawData),duration:l.duration,channels:l.channels,sampleRate:l.sampleRate,color:l.color,isRec:l.isRec||false})),
     clips:s.clips.map(c=>({id:c.id,libId:c.libId,st:c.st,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0,rate:c.rate??1,pitch:c.pitch??0,mono:c.mono??false,eq:c.eq||null,track:c.track??0})),bc:s.bc};
   dl(new Blob([JSON.stringify(proj)],{type:'application/json'}),exportName('json'));
@@ -2163,8 +2171,15 @@ async function loadProject(file){
     s.pps=proj.pps??80;s.head=proj.head??0;s.inPoint=proj.inPoint??null;s.outPoint=proj.outPoint??null;
     s.nextId=proj.nextId??1;s.nextLibId=proj.nextLibId??1;s.colorIdx=proj.colorIdx??0;
     if(proj.title)document.getElementById('titleInput').value=proj.title;
-    renderLib();render();s.undoStack=[];s.redoStack=[];
-  }catch(err){alert('Error: '+err.message);}
+    if(proj.bc)Object.assign(s.bc,proj.bc);
+    if(proj.playbackSpeed){s.playbackSpeed=proj.playbackSpeed;const sl=document.getElementById('speedSlider');if(sl){sl.value=s.playbackSpeed;document.getElementById('speedVal').textContent=s.playbackSpeed.toFixed(2)+'×';}}
+    if(proj.bpm!==undefined){s.bpm=proj.bpm;const bi=document.getElementById('bpmInput');if(bi)bi.value=s.bpm||'';}
+    // Ensure clips have all required fields including track
+    s.clips=s.clips.map(c=>({...c,rate:c.rate??1,pitch:c.pitch??0,mono:c.mono??false,eq:c.eq||null,track:c.track??0}));
+    _libElCache.clear();_tlWCache=0;invalidate();
+    renderLib();render();drawBounceWave();s.undoStack=[];s.redoStack=[];
+    setActiveTrack(s.activeTrack??0);scheduleAutosave();
+  }catch(err){alert('Error loading project: '+err.message);}
 }
 function dl(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);}
 
@@ -2195,7 +2210,7 @@ async function addToLib(file){
 }
 function addClip(libId,st){
   const item=li(libId);if(!item)return;snapshot();
-  s.clips.push({id:s.nextId++,libId,st:Math.max(0,st),gain:1,pan:0,fadeIn:0,fadeOut:0,trimStart:0,trimEnd:0,rate:1,pitch:0,mono:false,eq:null,track:s.activeTrack});render();
+  s.clips.push({id:s.nextId++,libId,st:Math.max(0,st),gain:1,pan:0,fadeIn:0,fadeOut:0,trimStart:0,trimEnd:0,rate:1,pitch:0,mono:false,eq:null,track:s.activeTrack});_tlWCache=0;invalidate();render();
 }
 async function loadFiles(files,startTime=null){
   for(const f of files){
