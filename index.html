@@ -1051,8 +1051,7 @@ function drawRuler(){
       rc.beginPath();rc.moveTo(bx,isBar?0:RULER_H-4);rc.lineTo(bx,RULER_H);rc.stroke();
     }
   }
-  const px=s.head*s.pps;
-  rc.strokeStyle='#FF5555';rc.lineWidth=2;rc.beginPath();rc.moveTo(px,0);rc.lineTo(px,RULER_H);rc.stroke();
+  // playhead drawn by render() after cache blit — not here
 }
 
 function drawTape(){
@@ -1085,10 +1084,7 @@ function drawTape(){
     tc.fillText('L',LABEL_W/2,ty+TRACK_H/2-6);tc.fillText('R',LABEL_W/2,ty+TRACK_H-8);
   }
   tc.textAlign='left';
-  const px=s.head*s.pps;
-  tc.strokeStyle='#FF5555';tc.lineWidth=2;tc.beginPath();tc.moveTo(px,0);tc.lineTo(px,TAPE_H);tc.stroke();
-  tc.fillStyle='#FF5555';tc.beginPath();tc.moveTo(px-5,0);tc.lineTo(px+4,0);tc.lineTo(px,7);tc.closePath();tc.fill();
-  tc.textAlign='left';
+  // playhead drawn by render() after cache blit — not here
 }
 
 function drawClip(clip){
@@ -1109,8 +1105,8 @@ function drawClip(clip){
   const nm=li(clip.libId)?.name??'?';
   const gDb=linTodB(g);const px2=clip.pan||0;
   const pt=clip.pitch??0;const extra=(Math.abs(gDb)>.5?' '+(gDb>=0?'+':'')+gDb.toFixed(1)+'dB':'')+(Math.abs(px2)>.01?' '+fmtPan(px2):'')+(Math.abs(pt)>.1?' '+(pt>0?'+':'')+pt.toFixed(1)+'st':'');
-  tc.fillText((nm.length>20?nm.slice(0,18)+'…':nm)+extra,x+3,10);
-  tc.fillStyle='rgba(255,255,255,.25)';tc.fillRect(x,0,TRIM_ZONE,TAPE_H);tc.fillRect(x+cw-TRIM_ZONE,0,TRIM_ZONE,TAPE_H);
+  tc.fillText((nm.length>20?nm.slice(0,18)+'…':nm)+extra,x+3,ty+11);
+  tc.fillStyle='rgba(255,255,255,.25)';tc.fillRect(x,ty,TRIM_ZONE,TRACK_H);tc.fillRect(x+cw-TRIM_ZONE,ty,TRIM_ZONE,TRACK_H);
   if(sel){tc.strokeStyle=isPrimary?'#70E0FF':'#FFD070';tc.lineWidth=2.5;tc.strokeRect(x+1,ty+1,cw-2,TRACK_H-2);}
   tc.textAlign='left';
 }
