@@ -248,7 +248,7 @@ input[type=range]::-webkit-slider-thumb{background:var(--acc);width:20px;height:
     <div id="tl">
       <div id="tlWrap">
         <canvas id="ruler" height="22"></canvas>
-        <canvas id="tape" height="240"></canvas>
+        <canvas id="tape" height="320"></canvas>
 
       </div>
       <!-- Bounce strip — sits below the scrollable tape, always visible -->
@@ -645,7 +645,7 @@ if (HAS_KEYBOARD) document.getElementById('kbSection').style.display = 'block';
 // State
 // ════════════════════════════════════════════════
 const COLS=['#2a4a5e','#4a2a4e','#2a4e3a','#4e3a2a','#2a3e4e','#4e2a3a','#2a4040','#3e3e2a'];
-const N_TRACKS=4, TRACK_H=60, RULER_H=22, TAPE_H=N_TRACKS*TRACK_H, TRIM_ZONE=HAS_FINE_POINTER?10:22;
+const N_TRACKS=4, TRACK_H=80, LABEL_W=32, RULER_H=22, TAPE_H=N_TRACKS*TRACK_H, TRIM_ZONE=HAS_FINE_POINTER?10:22;
 
 const s={
   lib:[],clips:[],nextId:1,nextLibId:1,colorIdx:0,
@@ -941,7 +941,7 @@ function setInfo(msg){try{const el=document.getElementById('info');if(el)el.text
 function selPrimary(){return s.clips.find(c=>s.selIds[0]!=null&&c.id===s.selIds[0])||null;}
 function effDur(c){const b=clipBuf(c);if(!b)return 0;const r=(c.rate??1)*Math.pow(2,(c.pitch??0)/12);return Math.max(0,(b.duration-(c.trimStart||0)-(c.trimEnd||0))/Math.max(0.01,r));}
 function totalDur(){return s.clips.length?Math.max(Math.max(...s.clips.map(c=>c.st+effDur(c)))+6,30):30;}
-function tlW(){return Math.ceil(totalDur()*s.pps)+80;}
+function tlW(){return Math.ceil(totalDur()*s.pps)+LABEL_W+80;}
 const dBtoLin=db=>db<=-60?0:Math.pow(10,db/20);
 const linTodB=g=>g<=0?-60:20*Math.log10(g);
 const fmtdB  =db=>(db>=0?'+':'')+db.toFixed(1)+' dB';
@@ -991,16 +991,16 @@ function render(){
     const step=s.pps<15?10:s.pps<50?5:1;
     rc.font='9px monospace';rc.fillStyle='#D0D0D0';rc.textAlign='left';
     for(let t=0;t<=w/s.pps;t+=step){
-      const x=t*s.pps;
+      const x=t*s.pps+LABEL_W;
       rc.strokeStyle='#4A4F56';rc.lineWidth=1;
       rc.beginPath();rc.moveTo(x,RULER_H-5);rc.lineTo(x,RULER_H);rc.stroke();
       rc.fillText(Math.floor(t/60)+':'+String(Math.round(t%60)).padStart(2,'0'),x+2,RULER_H-8);
     }
-    if(s.inPoint!=null){const x=s.inPoint*s.pps;rc.fillStyle='#4AE88A';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x+8,8);rc.closePath();rc.fill();}
-    if(s.outPoint!=null){const x=s.outPoint*s.pps;rc.fillStyle='#FF5555';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x-8,8);rc.closePath();rc.fill();}
+    if(s.inPoint!=null){const x=s.inPoint*s.pps+LABEL_W;rc.fillStyle='#4AE88A';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x+8,8);rc.closePath();rc.fill();}
+    if(s.outPoint!=null){const x=s.outPoint*s.pps+LABEL_W;rc.fillStyle='#FF5555';rc.beginPath();rc.moveTo(x,RULER_H);rc.lineTo(x,8);rc.lineTo(x-8,8);rc.closePath();rc.fill();}
     if(s.bpm>0&&s.showGrid){
       const beatS=60/s.bpm,beatPx=beatS*s.pps;
-      for(let b=0;b*beatPx<w+2;b++){const bx=b*beatPx,isBar=b%4===0;rc.strokeStyle=isBar?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.15)';rc.lineWidth=isBar?1:0.5;rc.beginPath();rc.moveTo(bx,isBar?0:RULER_H-4);rc.lineTo(bx,RULER_H);rc.stroke();}
+      for(let b=0;b*beatPx<w+2;b++){const bx=b*beatPx+LABEL_W,isBar=b%4===0;rc.strokeStyle=isBar?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.15)';rc.lineWidth=isBar?1:0.5;rc.beginPath();rc.moveTo(bx,isBar?0:RULER_H-4);rc.lineTo(bx,RULER_H);rc.stroke();}
     }
     rc=realRc;
 
@@ -1017,14 +1017,14 @@ function render(){
   rc.clearRect(0,0,ruler.width,ruler.height);
   rc.setTransform(dpr,0,0,dpr,0,0);
   rc.drawImage(rulerOff,0,0,rulerOff.width,rulerOff.height,0,0,w,RULER_H);
-  const rpx=s.head*s.pps;
+  const rpx=s.head*s.pps+LABEL_W;
   rc.strokeStyle='#FF5555';rc.lineWidth=2;rc.beginPath();rc.moveTo(rpx,0);rc.lineTo(rpx,RULER_H);rc.stroke();
 
   tc.setTransform(1,0,0,1,0,0);
   tc.clearRect(0,0,tape.width,tape.height);
   tc.setTransform(dpr,0,0,dpr,0,0);
   tc.drawImage(tapeOff,0,0,tapeOff.width,tapeOff.height,0,0,w,TAPE_H);
-  const tpx=s.head*s.pps;
+  const tpx=s.head*s.pps+LABEL_W;
   tc.strokeStyle='#FF5555';tc.lineWidth=2;tc.beginPath();tc.moveTo(tpx,0);tc.lineTo(tpx,TAPE_H);tc.stroke();
   tc.fillStyle='#FF5555';tc.beginPath();tc.moveTo(tpx-5,0);tc.lineTo(tpx+5,0);tc.lineTo(tpx,9);tc.closePath();tc.fill();
 }
@@ -1060,7 +1060,7 @@ function drawTape(){
   tc.fillStyle='#0B0D10';tc.fillRect(0,0,w,TAPE_H);
   // track dividers drawn in track loop below
   if(s.inPoint!=null||s.outPoint!=null){
-    const x0=(s.inPoint??0)*s.pps,x1=(s.outPoint??totalDur())*s.pps;
+    const x0=(s.inPoint??0)*s.pps+LABEL_W,x1=(s.outPoint??totalDur())*s.pps+LABEL_W;
     tc.fillStyle='rgba(70,160,100,.05)';tc.fillRect(x0,0,x1-x0,TAPE_H);
   }
   drawBPMGrid();
@@ -1078,11 +1078,11 @@ function drawTape(){
   // Track labels (T1-T4) + L/R per track
   for(let t=0;t<N_TRACKS;t++){
     const ty=t*TRACK_H,active=t===s.activeTrack;
-    tc.fillStyle='rgba(11,13,16,0.92)';tc.fillRect(0,ty,24,TRACK_H);
-    tc.fillStyle=active?'#70E0FF':'#888';tc.font='bold 9px monospace';tc.textAlign='center';
-    tc.fillText('T'+(t+1),12,ty+14);
-    tc.fillStyle='#666';tc.font='7px monospace';
-    tc.fillText('L',12,ty+TRACK_H/2-4);tc.fillText('R',12,ty+TRACK_H-6);
+    tc.fillStyle='rgba(11,13,16,0.92)';tc.fillRect(0,ty,LABEL_W,TRACK_H);
+    tc.fillStyle=active?'#70E0FF':'#888';tc.font='bold 10px monospace';tc.textAlign='center';
+    tc.fillText('T'+(t+1),LABEL_W/2,ty+18);
+    tc.fillStyle='#555';tc.font='8px monospace';
+    tc.fillText('L',LABEL_W/2,ty+TRACK_H/2-6);tc.fillText('R',LABEL_W/2,ty+TRACK_H-8);
   }
   tc.textAlign='left';
   const px=s.head*s.pps;
@@ -1095,7 +1095,7 @@ function drawClip(clip){
   const buf=clipBuf(clip);if(!buf)return;
   const ed=effDur(clip);if(ed<=0)return;
   const trk=clip.track??0, ty=trk*TRACK_H;
-  const x=clip.st*s.pps,cw=ed*s.pps;
+  const x=clip.st*s.pps+LABEL_W,cw=ed*s.pps;
   const sel=isSel(clip.id),isPrimary=clip.id===s.selIds[0],g=clip.gain??1;
   tc.fillStyle=clipCol(clip)+(sel?'ff':'bb');tc.fillRect(x,ty,cw,TRACK_H);
   drawWaveClip(buf,clip,0,x,ty,cw,TRACK_H/2);
@@ -1382,11 +1382,11 @@ async function play(){
     const dpr=window.devicePixelRatio||1,w=tlW();
     rc.setTransform(dpr,0,0,dpr,0,0);
     if(rulerOff.width)rc.drawImage(rulerOff,0,0,rulerOff.width,rulerOff.height,0,0,w,RULER_H);
-    const rpx=s.head*s.pps;
+    const rpx=s.head*s.pps+LABEL_W;
     rc.strokeStyle='#FF5555';rc.lineWidth=2;rc.beginPath();rc.moveTo(rpx,0);rc.lineTo(rpx,RULER_H);rc.stroke();
     tc.setTransform(dpr,0,0,dpr,0,0);
     if(tapeOff.width){tc.setTransform(1,0,0,1,0,0);tc.clearRect(0,0,tape.width,tape.height);tc.setTransform(dpr,0,0,dpr,0,0);tc.drawImage(tapeOff,0,0,tapeOff.width,tapeOff.height,0,0,w,TAPE_H);}
-    const tpx=s.head*s.pps;
+    const tpx=s.head*s.pps+LABEL_W;
     tc.strokeStyle='#FF5555';tc.lineWidth=2;tc.beginPath();tc.moveTo(tpx,0);tc.lineTo(tpx,TAPE_H);tc.stroke();
     tc.fillStyle='#FF5555';tc.beginPath();tc.moveTo(tpx-5,0);tc.lineTo(tpx+5,0);tc.lineTo(tpx,9);tc.closePath();tc.fill();
     if(s.head>=totalDur()){stop();return;}s.raf=requestAnimationFrame(tick);
@@ -2235,7 +2235,7 @@ async function loadFiles(files,startTime=null){
 // Pointer interaction — unified mouse + touch
 // touch-action:none on canvases; pointer events handle everything
 // ════════════════════════════════════════════════
-function getTapeX(e){const r=_wrapRect||tlWrap.getBoundingClientRect();return e.clientX-r.left+tlWrap.scrollLeft;}
+function getTapeX(e){const r=_wrapRect||tlWrap.getBoundingClientRect();return e.clientX-r.left+tlWrap.scrollLeft-LABEL_W;}
 function getTapeY(e){const r=_tapeRect||tape.getBoundingClientRect();return e.clientY-r.top;}
 function yToTrack(y){return Math.max(0,Math.min(N_TRACKS-1,Math.floor(y/TRACK_H)));}
 function hitClip(x,y){const trk=yToTrack(y);for(let i=s.clips.length-1;i>=0;i--){const c=s.clips[i];if((c.track??0)!==trk)continue;const cx=c.st*s.pps;if(x>=cx&&x<=cx+effDur(c)*s.pps)return c;}return null;}
