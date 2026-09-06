@@ -2096,7 +2096,7 @@ function splitAtPlayhead(){
   const buf=clipBuf(clip);if(!buf)return;
   const rel=s.head-clip.st;if(rel<.01||rel>effDur(clip)-.01)return;
   snapshot();const bs=(clip.trimStart||0)+rel;
-  s.clips.push({...clip,id:s.nextId++,st:s.head,trimStart:bs,fadeIn:0});
+  s.clips.push({...clip,id:s.nextId++,st:s.head,trimStart:bs,fadeIn:0,track:clip.track??0});
   clip.trimEnd=Math.max(0,buf.duration-bs);clip.fadeOut=0;
   s.selIds=[];render();updateInsp();
 }
@@ -2222,7 +2222,7 @@ async function addToLib(file){
 }
 function addClip(libId,st){
   const item=li(libId);if(!item)return;snapshot();
-  s.clips.push({id:s.nextId++,libId,st:Math.max(0,st),gain:1,pan:0,fadeIn:0,fadeOut:0,trimStart:0,trimEnd:0,rate:1,pitch:0,mono:false,eq:[0,0,0,0]});render();
+  s.clips.push({id:s.nextId++,libId,st:Math.max(0,st),gain:1,pan:0,fadeIn:0,fadeOut:0,trimStart:0,trimEnd:0,rate:1,pitch:0,mono:false,eq:null,track:s.activeTrack});render();
 }
 async function loadFiles(files,startTime=null){
   for(const f of files){
@@ -2259,7 +2259,7 @@ tape.addEventListener('pointerdown',e=>{
     const zone=getZone(clip,x,y);
     if(zone!=='move'){snapshot();ptrAction={type:zone,clipId:clip.id,startTX:x/s.pps,origTS:clip.trimStart||0,origTE:clip.trimEnd||0,origSt:clip.st,moved:false};}
     else ptrAction={type:'pending',clipId:clip.id,startCX:e.clientX,dragOff:x/s.pps-clip.st,origTrack:clip.track??0,moved:false};
-  }else{s.activeTrack=yToTrack(y);ptrAction={type:'emptyPending',startCX:e.clientX,startSL:tlWrap.scrollLeft,tx:x,moved:false};}
+  }else{setActiveTrack(yToTrack(y));ptrAction={type:'emptyPending',startCX:e.clientX,startSL:tlWrap.scrollLeft,tx:x,moved:false};}
 });
 
 tape.addEventListener('pointermove',e=>{
@@ -2277,7 +2277,7 @@ tape.addEventListener('pointermove',e=>{
   const x=getTapeX(e);
   if(ptrAction.type==='pending'){if(Math.abs(e.clientX-ptrAction.startCX)>8){snapshot();ptrAction.type='moveClip';ptrAction.moved=true;}}
   else if(ptrAction.type==='emptyPending'){if(Math.abs(e.clientX-ptrAction.startCX)>6){ptrAction.type='scroll';ptrAction.moved=true;}}
-  if(ptrAction.type==='moveClip'){const clip=s.clips.find(c=>c.id===ptrAction.clipId);if(clip){clip.st=Math.max(0,snapT(x/s.pps-ptrAction.dragOff));clip.track=yToTrack(getTapeY(e));s.activeTrack=clip.track;invalidate();scheduleRender();tape.style.cursor='grabbing';}}
+  if(ptrAction.type==='moveClip'){const clip=s.clips.find(c=>c.id===ptrAction.clipId);if(clip){clip.st=Math.max(0,snapT(x/s.pps-ptrAction.dragOff));clip.track=yToTrack(getTapeY(e));setActiveTrack(clip.track);invalidate();scheduleRender();tape.style.cursor='grabbing';}}
   else if(ptrAction.type==='scroll'){tlWrap.scrollLeft=ptrAction.startSL-(e.clientX-ptrAction.startCX);invalidate();scheduleRender();}
   else if(ptrAction.type==='trimLeft'){
     const clip=s.clips.find(c=>c.id===ptrAction.clipId),buf=clipBuf(clip);
