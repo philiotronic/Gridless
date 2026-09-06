@@ -2309,8 +2309,8 @@ tape.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);ptrAction=nul
 ruler.addEventListener('pointerdown',e=>{
   ruler.setPointerCapture(e.pointerId);if(s.playing)return;
   const r=tlWrap.getBoundingClientRect();
-  s.head=snapT(Math.max(0,(e.clientX-r.left+tlWrap.scrollLeft)/s.pps));
-  document.getElementById('posDisplay').textContent=fmt(s.head);render();
+  s.head=snapT(Math.max(0,(e.clientX-r.left+tlWrap.scrollLeft-LABEL_W)/s.pps));
+  document.getElementById('posDisplay').textContent=fmt(s.head);invalidate();render();
 });
 
 // Desktop: scroll wheel on timeline
