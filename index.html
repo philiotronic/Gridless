@@ -317,15 +317,6 @@ input[type=range]::-webkit-slider-thumb{background:var(--acc);width:20px;height:
     <button class="btn" id="toFrontBtn" title="bring to front [Shift+]]">⬆⬆</button>
     <button class="btn" id="clipToLibBtn" title="copy trimmed clip to library [C]">→ lib</button>
     <div class="isep"></div>
-    <div class="igrp" style="gap:3px">
-      <label style="font-size:10px">eq</label>
-      <span style="font-size:9px;color:#444">80</span><input type="range" class="eqSlider" data-band="0" min="-12" max="12" step="0.5" value="0" style="width:44px" title="80 Hz low shelf">
-      <span style="font-size:9px;color:#444">400</span><input type="range" class="eqSlider" data-band="1" min="-12" max="12" step="0.5" value="0" style="width:44px" title="400 Hz peak">
-      <span style="font-size:9px;color:#444">3k</span><input type="range" class="eqSlider" data-band="2" min="-12" max="12" step="0.5" value="0" style="width:44px" title="3 kHz peak">
-      <span style="font-size:9px;color:#444">12k</span><input type="range" class="eqSlider" data-band="3" min="-12" max="12" step="0.5" value="0" style="width:44px" title="12 kHz high shelf">
-    </div>
-    <div class="isep"></div>
-    <div class="isep"></div>
     <div class="igrp" title="3-band EQ: low shelf / mid bell / high shelf">
       <label style="color:#5ab">EQ</label>
       <label>♭</label><input type="range" id="ieqL" min="-12" max="12" step=".5" value="0" style="width:55px">
@@ -383,9 +374,6 @@ input[type=range]::-webkit-slider-thumb{background:var(--acc);width:20px;height:
     <button class="btn" id="rippleBtn" title="ripple edit — delete shifts subsequent clips">ripple</button>
     <button class="btn" id="xfadeBtn" title="auto-crossfade adjacent clips">↔ xfade</button>
     <input type="number" id="xfadeMs" value="30" min="5" max="500" step="5" style="width:44px;font-size:10px;padding:2px 4px" title="crossfade duration (ms)">
-    <div class="tsep"></div>
-    <button class="btn" id="rippleBtn" title="ripple delete — clips shift when you delete">ripple</button>
-    <button class="btn" id="xfadeBtn" title="auto-crossfade selected overlapping clips">⟋ xfade</button>
     <div class="tsep"></div>
     <button class="btn" id="expSelBtn" title="export selected clips as individual WAV files">↓ sel</button>
     <button class="btn" id="expStemsBtn" title="stem export — one WAV per library source">↓ stems</button>
@@ -578,27 +566,6 @@ input[type=range]::-webkit-slider-thumb{background:var(--acc);width:20px;height:
         <span class="bcVal" id="bcKneeVal">8 dB</span>
       </div>
 
-      <div style="border-top:1px solid #222;padding-top:8px;color:#444;font-size:10px;text-transform:uppercase;letter-spacing:.08em">EQ</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="color:#555;width:110px;flex-shrink:0">80 Hz (shelf)</span>
-        <input type="range" id="bcEq0" min="-12" max="12" step=".5" value="0" style="width:120px">
-        <span class="bcVal" id="bcEq0Val">0.0 dB</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="color:#555;width:110px;flex-shrink:0">400 Hz</span>
-        <input type="range" id="bcEq1" min="-12" max="12" step=".5" value="0" style="width:120px">
-        <span class="bcVal" id="bcEq1Val">0.0 dB</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="color:#555;width:110px;flex-shrink:0">3 kHz</span>
-        <input type="range" id="bcEq2" min="-12" max="12" step=".5" value="0" style="width:120px">
-        <span class="bcVal" id="bcEq2Val">0.0 dB</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="color:#555;width:110px;flex-shrink:0">12 kHz (shelf)</span>
-        <input type="range" id="bcEq3" min="-12" max="12" step=".5" value="0" style="width:120px">
-        <span class="bcVal" id="bcEq3Val">0.0 dB</span>
-      </div>
       <div style="border-top:1px solid #222;padding-top:8px;color:#444;font-size:10px;text-transform:uppercase;letter-spacing:.08em">Colour</div>
 
       <div style="display:flex;align-items:center;gap:8px">
@@ -848,7 +815,7 @@ async function loadFromIDB(data){
       const buf=await decCtx.decodeAudioData(item.rawData.slice(0));
       const restored={...item,buf,thumbEl:null,peaks:null};
       s.lib.push(restored);
-      computePeaks(buf).then(pk=>{restored.peaks=pk;if(document.getElementById('libList'))renderLib();});
+      computePeaks(buf).then(pk=>{restored.peaks=pk;if(document.getElementById('libList'))renderLib();invalidate();scheduleRender();});
     }catch(e){}
   }
   s.clips=data.clips.map(c=>({...c,gain:c.gain??1,pan:c.pan??0,fadeIn:c.fadeIn??0,fadeOut:c.fadeOut??0,trimStart:c.trimStart??0,trimEnd:c.trimEnd??0}));
@@ -945,7 +912,6 @@ console.log('%c GRIDLESS '+VERSION+' ','background:#163F50;color:#70E0FF;font-we
 function isSel(id){return s.selIds.includes(id);}
 function selPrimary(){return s.clips.find(c=>s.selIds[0]!=null&&c.id===s.selIds[0])||null;}
 function setInfo(msg){try{const el=document.getElementById('info');if(el)el.textContent=msg;}catch(e){}}
-function selPrimary(){return s.clips.find(c=>s.selIds[0]!=null&&c.id===s.selIds[0])||null;}
 function effDur(c){const b=clipBuf(c);if(!b)return 0;const r=(c.rate??1)*Math.pow(2,(c.pitch??0)/12);return Math.max(0,(b.duration-(c.trimStart||0)-(c.trimEnd||0))/Math.max(0.01,r));}
 function totalDur(){return s.clips.length?Math.max(Math.max(...s.clips.map(c=>c.st+effDur(c)))+6,30):30;}
 function tlW(){return Math.ceil(totalDur()*s.pps)+LABEL_W+80;}
@@ -1078,8 +1044,10 @@ function drawClip(clip){
   const x=clip.st*s.pps+LABEL_W,cw=ed*s.pps;
   const sel=isSel(clip.id),isPrimary=clip.id===s.selIds[0],g=clip.gain??1;
   tc.fillStyle=clipCol(clip)+(sel?'ff':'bb');tc.fillRect(x,ty,cw,TRACK_H);
-  drawWaveClip(buf,clip,0,x,ty,cw,TRACK_H/2);
-  drawWaveClip(buf,clip,buf.numberOfChannels>1?1:0,x,ty+TRACK_H/2,cw,TRACK_H/2);
+  const item=li(clip.libId),ch2=buf.numberOfChannels>1?1:0;
+  const tsFrac=(clip.trimStart||0)/buf.duration,teFrac=(clip.trimEnd||0)/buf.duration;
+  if(!item?.peaks||!drawWavePeaks(item.peaks,0,x,ty,cw,TRACK_H/2,g,tsFrac,teFrac))drawWaveClip(buf,clip,0,x,ty,cw,TRACK_H/2);
+  if(!item?.peaks||!drawWavePeaks(item.peaks,ch2,x,ty+TRACK_H/2,cw,TRACK_H/2,g,tsFrac,teFrac))drawWaveClip(buf,clip,ch2,x,ty+TRACK_H/2,cw,TRACK_H/2);
   const fi=clip.fadeIn||0,fo=clip.fadeOut||0;
   if(fi>0){const fw=Math.min(fi*s.pps,cw),gr=tc.createLinearGradient(x,0,x+fw,0);gr.addColorStop(0,'rgba(0,0,0,.75)');gr.addColorStop(1,'rgba(0,0,0,0)');tc.fillStyle=gr;tc.fillRect(x,ty,fw,TRACK_H);}
   if(fo>0){const fw=Math.min(fo*s.pps,cw),gr=tc.createLinearGradient(x+cw-fw,0,x+cw,0);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.75)');tc.fillStyle=gr;tc.fillRect(x+cw-fw,ty,fw,TRACK_H);}
@@ -1460,7 +1428,7 @@ function finishMultiChannelRecording(){
     const pan=nch===1?0:nch===2?(ch===0?-.8:.8):((ch/(nch-1))*2-1);
     const item={id:s.nextLibId++,name,rawData,buf:ab,duration:ab.duration,channels:1,sampleRate:sr,color,isRec:true,thumbEl:null,peaks:null};
     s.lib.push(item);s.clips.push({id:s.nextId++,libId:item.id,st:s.recordHeadStart,gain:1,pan,fadeIn:0,fadeOut:0,trimStart:0,trimEnd:0,rate:1,pitch:0,mono:false,eq:null,track:s.activeTrack});
-    computePeaks(ab).then(pk=>{item.peaks=pk;if(document.getElementById('libList'))renderLib();});
+    computePeaks(ab).then(pk=>{item.peaks=pk;if(document.getElementById('libList'))renderLib();invalidate();scheduleRender();});
   }
   s.recChannelBuffers=[];renderLib();render();scheduleAutosave();
 }
@@ -1483,7 +1451,6 @@ function updateInsp(){
   document.getElementById('ipan').value=Math.round((clip.pan||0)*100);document.getElementById('ipanV').textContent=fmtPan(clip.pan||0);
   document.getElementById('iFI').value=(clip.fadeIn||0).toFixed(2);document.getElementById('iFO').value=(clip.fadeOut||0).toFixed(2);
   document.getElementById('iTS').value=(clip.trimStart||0).toFixed(3);document.getElementById('iTE').value=(clip.trimEnd||0).toFixed(3);
-  document.querySelectorAll('.eqSlider').forEach(sl=>{const b=+sl.dataset.band;sl.value=(clip.eq?clip.eq[b]:0)||0;});
   document.getElementById('iRate').value=(clip.rate??1).toFixed(2);document.getElementById('iRateV').textContent=(clip.rate??1).toFixed(2)+'×';
   const ptv=clip.pitch??0;document.getElementById('iPitch').value=ptv;document.getElementById('iPitchV').textContent=(ptv>=0?'+':'')+ptv.toFixed(1)+' st';
   document.getElementById('iMono').textContent=(clip.mono?'on':'off');document.getElementById('iMono').classList.toggle('on',clip.mono??false);
@@ -1777,7 +1744,7 @@ function syncBcUI(){
   document.getElementById('bcLim').value=bc.limCeiling;document.getElementById('bcLimVal').textContent=(bc.limCeiling<0?'−':'')+Math.abs(bc.limCeiling)+' dBFS';
   document.getElementById('bcNormToggle').textContent=bc.normalize?'on':'off';document.getElementById('bcNormToggle').classList.toggle('on',bc.normalize);
   document.querySelectorAll('.bcMode').forEach(b=>{b.classList.toggle('on',b.dataset.mode===bc.outputMode);});
-  [0,1,2,3].forEach(i=>{const el=document.getElementById('bcEq'+i);if(!el)return;const v=bc['eq'+i]||0;el.value=v;const lv=document.getElementById('bcEq'+i+'Val');if(lv)lv.textContent=(v>=0?'+':'')+v.toFixed(1)+' dB';});
+  [0,1,2,3].forEach(i=>{const el=document.getElementById('bcEq'+i);if(!el)return;const v=bc.eq?.[i]?.g||0;el.value=v;const lv=document.getElementById('bcEq'+i+'V');if(lv)lv.textContent=(v>=0?'+':'')+v.toFixed(1)+' dB';});
 }
 
 
@@ -1823,42 +1790,6 @@ function rippleDelete(){
     s.clips.forEach(c=>{if(c.st>=selEnd)c.st=Math.max(0,c.st-gap);});
   });
   s.selIds=[];render();updateInsp();
-}
-
-// ════════════════════════════════════════════════
-// Export selected clips as individual WAV files
-// ════════════════════════════════════════════════
-
-// On iOS, only one programmatic download per user gesture — warn on stems/sel export
-function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}
-
-async function exportSelectedClips(){
-  if(!s.selIds.length)return;
-  const ctx=getCtx(),sr=ctx.sampleRate;
-  for(const id of s.selIds){
-    const clip=s.clips.find(c=>c.id===id);
-    if(!clip)continue;
-    const buf=clipBuf(clip);if(!buf)continue;
-    const ed=effDur(clip);
-    const offCtx=new OfflineAudioContext(2,Math.ceil(ed*sr*(s.playbackSpeed??1)>0?ed*sr:ed*sr),sr);
-    const src2=offCtx.createBufferSource();src2.buffer=buf;
-    src2.playbackRate.value=Math.max(0.01,(clip.rate??1)*Math.pow(2,(clip.pitch??0)/12));
-    const gn=offCtx.createGain();gn.gain.value=clip.gain??1;
-    const EQ_BANDS=[[80,'lowshelf'],[400,'peaking'],[3000,'peaking'],[12000,'highshelf']];
-    let chain=gn;
-    if(clip.eq&&clip.eq.some(g=>Math.abs(g)>0.01)){
-      EQ_BANDS.forEach(([freq,type],i)=>{
-        const f=offCtx.createBiquadFilter();f.type=type;f.frequency.value=freq;
-        f.gain.value=clip.eq[i]||0;f.Q.value=0.8;chain.connect(f);chain=f;
-      });
-    }
-    const pn=offCtx.createStereoPanner();pn.pan.value=clip.pan||0;
-    src2.connect(gn);chain.connect(pn);pn.connect(offCtx.destination);
-    src2.start(0,clip.trimStart||0,ed*Math.max(0.01,(clip.rate??1)*Math.pow(2,(clip.pitch??0)/12)));
-    const rendered=await offCtx.startRendering();
-    const name=(li(clip.libId)?.name.replace(/\.[^.]+$/,'')||'clip')+`_clip${id}.wav`;
-    dl(new Blob([encodeWAV16(rendered)],{type:'audio/wav'}),name);
-  }
 }
 
 // ════════════════════════════════════════════════
@@ -1990,7 +1921,8 @@ async function exportSelectedClips(){
     src2.playbackRate.value=Math.max(0.01,(clip.rate??1)*Math.pow(2,(clip.pitch??0)/12));
     const gn=off.createGain();gn.gain.value=clip.gain??1;
     const pn=off.createStereoPanner();pn.pan.value=clip.pan||0;
-    src2.connect(gn);gn.connect(pn);pn.connect(off.destination);
+    const eqOut=buildEQChain(off,gn,clip.eq);
+    src2.connect(gn);eqOut.connect(pn);pn.connect(off.destination);
     src2.start(0,clip.trimStart||0,(buf.duration-(clip.trimStart||0)-(clip.trimEnd||0)));
     const rendered=await off.startRendering();
     const name=(li(clip.libId)?.name.replace(/\.[^.]+$/,'')||'clip')+'_'+String(i+1).padStart(2,'0')+(s.bit24?'_24bit':'')+'.wav';
@@ -2413,8 +2345,6 @@ document.getElementById('expStemsBtn').addEventListener('click',exportStems);
 document.getElementById('pasteBtn').addEventListener('click',pasteClips);
 // BPM grid
 document.getElementById('gridBtn').addEventListener('click',()=>{s.showGrid=!s.showGrid;invalidate();document.getElementById('gridBtn').classList.toggle('on',s.showGrid);render();});
-// Ripple + XFade
-document.getElementById('rippleBtn').addEventListener('click',()=>{s.ripple=!s.ripple;document.getElementById('rippleBtn').classList.toggle('on',s.ripple);});
 // Stem export
 document.getElementById('expBtn').addEventListener('contextmenu',e=>{e.preventDefault();exportStems();});
 // Export selected (Shift+click wav button)
@@ -2431,19 +2361,6 @@ document.getElementById('libSearch').addEventListener('input',e=>{s.libFilter=e.
     renderLib();
   });
 })();
-// Per-clip EQ sliders
-document.querySelectorAll('.eqSlider').forEach(sl=>{
-  sl.addEventListener('input',()=>{
-    const c=selPrimary();if(!c)return;
-    if(!c.eq)c.eq=[0,0,0,0];
-    c.eq[+sl.dataset.band]=+sl.value;invalidate();scheduleRender();
-  });
-});
-// Bounce chain EQ
-[0,1,2,3].forEach(i=>{
-  const el=document.getElementById('bcEq'+i);if(!el)return;
-  bcBind('bcEq'+i,'eq'+i,Number,v=>{const d=parseFloat(v).toFixed(1);return(+d>=0?'+':'')+d+' dB';});
-});
 document.getElementById('multiBtn').addEventListener('click',()=>{
   s.multiSelect=!s.multiSelect;
   document.getElementById('multiBtn').classList.toggle('on',s.multiSelect);
